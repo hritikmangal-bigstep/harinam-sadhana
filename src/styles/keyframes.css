@@ -1,0 +1,43 @@
+/* Bare @keyframes (no @layer) — safe to @import before the Tailwind directives. */
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(200%);
+  }
+}
+@keyframes mandala-rotate {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+@keyframes light-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+@keyframes flame-flicker {
+  0% {
+    transform: scaleX(1) scaleY(1) rotate(-2deg);
+    opacity: 1;
+  }
+  40% {
+    transform: scaleX(0.9) scaleY(1.1) rotate(1deg);
+    opacity: 0.92;
+  }
+  100% {
+    transform: scaleX(1.05) scaleY(0.95) rotate(-1deg);
+    opacity: 0.96;
+  }
+}

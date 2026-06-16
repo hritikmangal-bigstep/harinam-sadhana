@@ -1,0 +1,313 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Raleway:wght@300;400;500;600&family=Noto+Serif+Devanagari:wght@400;500&display=swap");
+@import "../styles/keyframes.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary — Saffron & Gold */
+  --color-primary: #e8680a;
+  --color-primary-dark: #c4530a;
+  --color-primary-light: #fde8d0;
+  /* Secondary */
+  --color-secondary: #d4a017;
+  --color-secondary-light: #fbf0c0;
+  /* Accent */
+  --color-accent: #c2587a;
+  /* Neutrals — Cream & Earth */
+  --color-background: #fffdf5;
+  --color-surface: #fff8ee;
+  --color-surface-alt: #f5edd8;
+  --color-border: #e8d5a3;
+  --color-muted: #8b7355;
+  --color-foreground: #3d2b1f;
+  --color-heading: #5c3317;
+  /* Semantic */
+  --color-success: #2e7d32;
+  --color-error: #c62828;
+  --color-warning: #f57f17;
+  --color-info: #1565c0;
+  /* Fonts */
+  --font-heading: "Fraunces", Georgia, serif;
+  --font-body: "Raleway", system-ui, sans-serif;
+  --font-mantra: "Noto Serif Devanagari", serif;
+  /* Shadows */
+  --shadow-sm: 0 1px 4px rgba(61, 43, 31, 0.08);
+  --shadow-md: 0 4px 16px rgba(61, 43, 31, 0.1);
+  --shadow-lg: 0 8px 32px rgba(61, 43, 31, 0.12);
+  --shadow-glow: 0 0 24px rgba(232, 104, 10, 0.18);
+  /* Layout widths */
+  --container-max: 1200px;
+  --content-max: 720px;
+  --hero-max: 960px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    color: var(--color-heading);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  /* §14.2 Handmade-paper grain overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("/textures/paper-grain.svg");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 1;
+    mix-blend-mode: multiply;
+  }
+}
+
+@layer components {
+  /* §7.3 Card */
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  /* §7.7 Buttons */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary);
+    color: #fff;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 16px;
+    height: 48px;
+    padding: 0 28px;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 12px rgba(232, 104, 10, 0.3);
+    transition: background 150ms, box-shadow 150ms, transform 100ms;
+  }
+  .btn-primary:hover {
+    background: var(--color-primary-dark);
+    box-shadow: 0 4px 20px rgba(232, 104, 10, 0.4);
+  }
+  .btn-primary:active {
+    transform: scale(0.97);
+  }
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--color-primary);
+    border: 1.5px solid var(--color-primary);
+    border-radius: 9999px;
+    height: 48px;
+    padding: 0 28px;
+    font-family: var(--font-body);
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms;
+  }
+  .btn-secondary:hover {
+    background: var(--color-primary-light);
+  }
+
+  /* §14.6 Glassmorphic feature card */
+  .glass-card {
+    background: rgba(255, 248, 238, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(212, 160, 23, 0.3);
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 24px rgba(61, 43, 31, 0.08),
+      inset 0 1px 0 rgba(212, 160, 23, 0.15);
+    transition: transform 200ms ease-out, box-shadow 200ms ease-out;
+  }
+  .glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(61, 43, 31, 0.12),
+      inset 0 1px 0 rgba(212, 160, 23, 0.2);
+  }
+
+  /* §14.4 Gold-foil headline */
+  .text-gold-foil {
+    background: linear-gradient(
+      135deg,
+      #6f4e08 0%,
+      #9c7008 26%,
+      #d4a017 52%,
+      #9c7008 74%,
+      #6f4e08 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #8a6508;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    text-shadow: 0 1px 1px rgba(124, 74, 18, 0.12);
+  }
+
+  /* §14.4 Illuminated drop cap */
+  .drop-cap::first-letter {
+    float: left;
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 4.5rem;
+    line-height: 0.85;
+    margin: 4px 10px 0 0;
+    color: var(--color-primary);
+    text-shadow: 0 2px 8px rgba(232, 104, 10, 0.2);
+  }
+
+  /* §14.4 Sanskrit verse block */
+  .verse-block {
+    border-left: 3px solid var(--color-secondary);
+    padding: 20px 24px;
+    background: var(--color-surface);
+    border-radius: 0 12px 12px 0;
+  }
+  .verse-transliteration {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--color-muted);
+    margin-bottom: 6px;
+  }
+  .verse-translation {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--color-foreground);
+  }
+
+  /* §14.1 Lotus divider wrapper */
+  .lotus-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+  }
+
+  /* §14.1 Rangoli border strip */
+  .rangoli-strip {
+    height: 12px;
+    width: 100%;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--color-primary) 0px,
+      var(--color-primary) 6px,
+      var(--color-secondary) 6px,
+      var(--color-secondary) 12px,
+      transparent 12px,
+      transparent 18px
+    );
+    opacity: 0.35;
+  }
+
+  /* §14.3 Maha Mantra marquee ribbon */
+  .mantra-ribbon {
+    overflow: hidden;
+    background: linear-gradient(
+      135deg,
+      var(--color-primary-light),
+      var(--color-secondary-light)
+    );
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding: 10px 0;
+  }
+  .mantra-track {
+    display: flex;
+    width: max-content;
+    font-family: var(--font-mantra);
+    font-size: 17px;
+    color: var(--color-heading);
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  /* §14.3 Rounds badge */
+  .rounds-badge {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* §14.2 Full-bleed mandala watermark */
+  .page-mandala-bg {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(800px, 100vw);
+    height: min(800px, 100vh);
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* §14.2 Hero radial light pool */
+  .hero-light-pool {
+    background: radial-gradient(
+      ellipse 70% 60% at 50% 40%,
+      rgba(253, 232, 208, 0.85) 0%,
+      rgba(255, 248, 238, 0.5) 45%,
+      var(--color-background) 100%
+    );
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mantra-track {
+    animation: marquee 40s linear infinite;
+  }
+  .page-mandala-bg {
+    animation: mandala-rotate 200s linear infinite;
+  }
+  .hero-light-pool {
+    animation: light-breathe 6s ease-in-out infinite;
+  }
+}
+
+/* Collapse all animation to a gentle fade when reduced motion is requested. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.15s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.15s !important;
+    scroll-behavior: auto !important;
+  }
+}
