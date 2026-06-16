@@ -29,7 +29,7 @@ export function FormSection() {
       <div className="mb-4 rounded-xl border-l-[3px] border-l-primary bg-primary-light px-4 py-3 font-body text-body-sm leading-relaxed text-foreground">
         We need <strong className="text-info">500+ Japa recordings</strong> (1 round
         each) to train our AI across different voices &amp; accents. Send us your 1 round —
-        takes ~5 min. 🙏
+        takes ~8 min. 🙏
       </div>
 
       <div className="card shadow-md border-[rgba(124,58,237,0.25)]">

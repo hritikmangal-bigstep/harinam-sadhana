@@ -69,7 +69,7 @@ npm run typecheck – tsc --noEmit type check
 - Audio recorder UX: press-and-hold to record (WhatsApp-style), slide left to cancel, release to submit, slide upward to lock the recording.
 - Design: warm saffron/gold palette, lotus motifs, calm spiritual aesthetic
 - S3 bucket must be private — no public access, presigned URLs only
-- Presigned URL expiry: 5 minutes (upload), enough for one submission flow
+- Presigned URL expiry: 8 minutes (upload), enough for one submission flow
 - Form fields to collect: devotee name, location, chanting rounds count, date, notes (optional)
 - Future phase will add Claude AI analysis and chatbot on top of stored S3 data.
 - Creating a single page website
