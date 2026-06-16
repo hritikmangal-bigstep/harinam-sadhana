@@ -2,8 +2,8 @@ import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { AudioMimeType } from "@/types";
 
-/** Presigned upload URLs expire after 5 minutes (design/CLAUDE.md spec). */
-const PRESIGN_EXPIRY_SECONDS = 5 * 60;
+/** Presigned upload URLs expire after 8 minutes. */
+const PRESIGN_EXPIRY_SECONDS = 8 * 60;
 
 const ACCEPTED_AUDIO_TYPES: readonly AudioMimeType[] = [
   "audio/webm",
