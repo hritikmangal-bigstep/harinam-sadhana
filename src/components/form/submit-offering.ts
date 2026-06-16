@@ -49,7 +49,7 @@ export async function offerSession({
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      name: submission.name,
+      name: submission.name || "anonymous",
       contentType: mimeType,
     }),
   });

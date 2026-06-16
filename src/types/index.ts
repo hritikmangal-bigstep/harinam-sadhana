@@ -5,8 +5,8 @@ export type AudioMimeType = "audio/webm" | "audio/mp4";
 
 /** A single devotee's chanting-session offering. */
 export interface DevoteeSubmission {
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
   notes?: string;
   /** Recording length in seconds (informational; stored with metadata). */
   durationSeconds?: number;

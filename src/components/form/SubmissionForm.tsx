@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
 import type { DevoteeSubmission } from "@/types";
 import { AudioRecorder, type RecordingValue } from "@/components/recorder/AudioRecorder";
 import { SuccessOverlay } from "@/components/state/SuccessOverlay";
 import { Field, inputClass } from "./Field";
 import { submissionSchema } from "./submission-schema";
 import { offerSession } from "./submit-offering";
+
+type IdentityMode = "anonymous" | "named";
 
 type Values = {
   name: string;
@@ -16,6 +17,7 @@ type Values = {
 };
 
 export function SubmissionForm() {
+  const [identityMode, setIdentityMode] = useState<IdentityMode>("anonymous");
   const [values, setValues] = useState<Values>({ name: "", email: "", notes: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recording, setRecording] = useState<RecordingValue | null>(null);
@@ -32,7 +34,10 @@ export function SubmissionForm() {
     e.preventDefault();
     setSubmitError(null);
 
-    const parsed = submissionSchema.safeParse(values);
+    const valuesToValidate =
+      identityMode === "anonymous" ? { ...values, name: "", email: "" } : values;
+
+    const parsed = submissionSchema.safeParse(valuesToValidate);
     const nextErrors: Record<string, string> = {};
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -44,7 +49,7 @@ export function SubmissionForm() {
     setErrors(nextErrors);
 
     if (!recording) {
-      setRecordingError("Please record your chanting before offering.");
+      setRecordingError("Please record your chanting before submitting.");
     } else {
       setRecordingError(null);
     }
@@ -52,8 +57,8 @@ export function SubmissionForm() {
     if (!parsed.success || !recording) return;
 
     const submission: DevoteeSubmission = {
-      name: parsed.data.name,
-      email: parsed.data.email,
+      name: parsed.data.name || undefined,
+      email: parsed.data.email || undefined,
       notes: parsed.data.notes || undefined,
       durationSeconds: recording.seconds,
     };
@@ -70,7 +75,7 @@ export function SubmissionForm() {
       setOffered(true);
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Your offering could not be sent.",
+        err instanceof Error ? err.message : "Your submission could not be sent.",
       );
     } finally {
       setIsUploading(false);
@@ -80,48 +85,90 @@ export function SubmissionForm() {
   return (
     <>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8">
-        {/* Name & Email */}
-        <fieldset className="flex flex-col gap-6">
-          <legend className="mb-2 font-heading text-h3 text-heading">
-            Your Details
-          </legend>
 
-          <Field id="name" label="Name" required error={errors.name}>
-            <input
-              id="name"
-              className={inputClass}
-              value={values.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="Your name"
-              aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? "name-error" : undefined}
-            />
-          </Field>
+        {/* Identity toggle */}
+        <fieldset className="flex flex-col gap-4">
+          <legend className="mb-1 font-heading text-h3 text-heading">Your Details</legend>
 
-          <div className="flex flex-col gap-1">
-            <Field id="email" label="Email" required error={errors.email}>
-              <input
-                id="email"
-                type="email"
-                className={inputClass}
-                value={values.email}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="you@example.com"
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? "email-error" : "email-disclaimer"}
-              />
-            </Field>
-            <p id="email-disclaimer" className="text-caption text-muted">
-              Your details will not be used for marketing purposes.
-            </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setIdentityMode("anonymous")}
+              className="flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all"
+              style={
+                identityMode === "anonymous"
+                  ? { borderColor: "#E87722", background: "#FDF0E5", color: "#C8610A" }
+                  : { borderColor: "#DDD", background: "#F5F2EE", color: "#888" }
+              }
+            >
+              <span className="text-base">🕵️</span>
+              Stay Anonymous
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdentityMode("named")}
+              className="flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all"
+              style={
+                identityMode === "named"
+                  ? { borderColor: "#E87722", background: "#FDF0E5", color: "#C8610A" }
+                  : { borderColor: "#DDD", background: "#F5F2EE", color: "#888" }
+              }
+            >
+              <span className="text-base">📲</span>
+              Get Beta Access
+            </button>
           </div>
+
+          {identityMode === "named" && (
+            <div className="flex flex-col gap-4">
+              <Field id="name" label="Name" error={errors.name}>
+                <input
+                  id="name"
+                  className={inputClass}
+                  value={values.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  placeholder="Your name or spiritual name"
+                  aria-invalid={Boolean(errors.name)}
+                />
+              </Field>
+              <Field id="email" label="Email (optional — for beta invite)" error={errors.email}>
+                <input
+                  id="email"
+                  type="email"
+                  className={inputClass}
+                  value={values.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  placeholder="your@email.com"
+                  aria-invalid={Boolean(errors.email)}
+                />
+              </Field>
+            </div>
+          )}
         </fieldset>
 
         {/* Audio Recording */}
         <fieldset className="flex flex-col items-center gap-3 rounded-md bg-surface-alt/60 py-5">
-          <legend className="mb-2 px-2 text-center font-heading text-h3 text-heading">
+          <legend className="mb-1 px-2 text-center font-heading text-h3 text-heading">
             Your Chanting
           </legend>
+
+          {/* Mic notice */}
+          <div
+            className="flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left font-body text-body-sm"
+            style={{
+              background: "#FFF8E8",
+              border: "1px solid #E8D8A0",
+              color: "#6B4E00",
+              lineHeight: 1.5,
+            }}
+          >
+            <span className="mt-0.5 shrink-0 text-base">📱</span>
+            <p>
+              <strong style={{ color: "#4A3500" }}>Keep your phone close to your mouth</strong>{" "}
+              while chanting. We need a very clear voice for accurate AI training.
+            </p>
+          </div>
+
           <AudioRecorder
             onChange={(v) => {
               setRecording(v);
@@ -141,11 +188,11 @@ export function SubmissionForm() {
         <Field id="notes" label="Remarks">
           <textarea
             id="notes"
-            rows={4}
+            rows={3}
             className={`${inputClass} h-auto resize-y py-3`}
             value={values.notes}
             onChange={(e) => set("notes", e.target.value)}
-            placeholder="(Optional) — number of rounds you chanted, number of recitations, or any other feedback"
+            placeholder="(Optional) — number of rounds, recitations, or any feedback"
           />
         </Field>
 
@@ -160,9 +207,12 @@ export function SubmissionForm() {
           disabled={isUploading}
           className="btn-primary gap-2 self-center"
         >
-          <Sparkles size={18} aria-hidden="true" />
-          {isUploading ? "Offering your session…" : "Offer My Session"}
+          🙏 {isUploading ? "Sending…" : "Submit My Japa"}
         </button>
+
+        <p className="text-center font-body text-caption text-muted -mt-4">
+          Used only for AI training · Never shared publicly · Full anonymity respected
+        </p>
       </form>
 
       {offered && (
