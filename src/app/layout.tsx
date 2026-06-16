@@ -3,7 +3,7 @@ import { LotusWatermark } from "@/components/decor/LotusWatermark";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Harinam Sadhana — Offer Your Chanting Session",
+  title: "Harinam Prabhu AI — Offer Your Chanting Session",
   description:
     "A sacred space for devotees to offer their daily chanting. Record your japa and share it as an offering.",
 };
