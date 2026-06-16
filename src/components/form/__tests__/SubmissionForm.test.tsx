@@ -13,28 +13,25 @@ beforeEach(() => {
 });
 
 describe("SubmissionForm validation", () => {
-  it("shows field errors and the recording prompt on an empty submit", async () => {
+  it("shows the recording prompt when submitting without a recording", async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await user.click(screen.getByRole("button", { name: /offer my session/i }));
+    await user.click(screen.getByRole("button", { name: /submit my japa/i }));
 
-    const errors = await screen.findAllByRole("alert");
-    // name + location + rounds + recording prompt at minimum.
-    expect(errors.length).toBeGreaterThanOrEqual(3);
-    expect(
-      screen.getByText(/record your chanting before offering/i),
-    ).toBeInTheDocument();
-    // Validation fails before any network call.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/record your chanting before submitting/i);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not call the API while required fields are missing", async () => {
+  it("does not call the API while the required recording is missing", async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
+    // Switch to named mode and fill in details — recording still absent
+    await user.click(screen.getByRole("button", { name: /get beta access/i }));
     await user.type(screen.getByLabelText(/name/i), "Radha");
-    await user.click(screen.getByRole("button", { name: /offer my session/i }));
+    await user.click(screen.getByRole("button", { name: /submit my japa/i }));
 
     expect(fetchMock).not.toHaveBeenCalled();
   });

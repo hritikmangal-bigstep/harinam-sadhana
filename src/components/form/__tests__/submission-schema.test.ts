@@ -17,14 +17,14 @@ describe("submissionSchema", () => {
     expect(submissionSchema.safeParse(rest).success).toBe(true);
   });
 
-  it("rejects an empty name", () => {
-    expect(submissionSchema.safeParse({ ...valid, name: "  " }).success).toBe(false);
+  it("accepts an empty name (anonymous mode)", () => {
+    expect(submissionSchema.safeParse({ ...valid, name: "" }).success).toBe(true);
   });
 
-  it("rejects a missing email", () => {
+  it("accepts when email is omitted (anonymous mode)", () => {
     const { email, ...rest } = valid;
     void email;
-    expect(submissionSchema.safeParse(rest).success).toBe(false);
+    expect(submissionSchema.safeParse(rest).success).toBe(true);
   });
 
   it("rejects an invalid email", () => {

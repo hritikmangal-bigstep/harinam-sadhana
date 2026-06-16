@@ -17,7 +17,7 @@ export function FormSection() {
           All glories to Śrīla Prabhupāda
         </p>
         <h2 className="font-heading text-[clamp(1.4rem,4vw,1.9rem)] font-semibold leading-tight text-heading">
-          Offer Your Chanting Session
+          Contribute Your Chanting Session
         </h2>
         <p className="mt-1 font-body text-body-sm text-muted">
           AI Japa tracker · Counts rounds · Detects mistakes · Improves chanting
@@ -26,21 +26,13 @@ export function FormSection() {
       </div>
 
       {/* Description banner */}
-      <div
-        className="mb-4 rounded-xl px-4 py-3 font-body text-body-sm"
-        style={{
-          background: "#FDF0E5",
-          borderLeft: "3px solid #E87722",
-          color: "#444",
-          lineHeight: 1.6,
-        }}
-      >
-        We need <strong style={{ color: "#1F3864" }}>500+ Japa recordings</strong> (1 round
+      <div className="mb-4 rounded-xl border-l-[3px] border-l-primary bg-primary-light px-4 py-3 font-body text-body-sm leading-relaxed text-foreground">
+        We need <strong className="text-info">500+ Japa recordings</strong> (1 round
         each) to train our AI across different voices &amp; accents. Send us your 1 round —
         takes ~5 min. 🙏
       </div>
 
-      <div className="card shadow-md" style={{ borderColor: "rgba(124,58,237,0.25)" }}>
+      <div className="card shadow-md border-[rgba(124,58,237,0.25)]">
         <SubmissionForm />
       </div>
     </section>

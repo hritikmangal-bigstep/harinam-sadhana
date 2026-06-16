@@ -94,12 +94,11 @@ export function SubmissionForm() {
             <button
               type="button"
               onClick={() => setIdentityMode("anonymous")}
-              className="flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all"
-              style={
+              className={`flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all ${
                 identityMode === "anonymous"
-                  ? { borderColor: "#E87722", background: "#FDF0E5", color: "#C8610A" }
-                  : { borderColor: "#DDD", background: "#F5F2EE", color: "#888" }
-              }
+                  ? "border-primary bg-primary-light text-primary-dark"
+                  : "border-border bg-surface-alt text-muted"
+              }`}
             >
               <span className="text-base">🕵️</span>
               Stay Anonymous
@@ -107,12 +106,11 @@ export function SubmissionForm() {
             <button
               type="button"
               onClick={() => setIdentityMode("named")}
-              className="flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all"
-              style={
+              className={`flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all ${
                 identityMode === "named"
-                  ? { borderColor: "#E87722", background: "#FDF0E5", color: "#C8610A" }
-                  : { borderColor: "#DDD", background: "#F5F2EE", color: "#888" }
-              }
+                  ? "border-primary bg-primary-light text-primary-dark"
+                  : "border-border bg-surface-alt text-muted"
+              }`}
             >
               <span className="text-base">📲</span>
               Get Beta Access
@@ -153,18 +151,10 @@ export function SubmissionForm() {
           </legend>
 
           {/* Mic notice */}
-          <div
-            className="flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left font-body text-body-sm"
-            style={{
-              background: "#FFF8E8",
-              border: "1px solid #E8D8A0",
-              color: "#6B4E00",
-              lineHeight: 1.5,
-            }}
-          >
+          <div className="flex w-full items-start gap-3 rounded-xl border border-secondary bg-secondary-light px-3 py-2 text-left font-body text-body-sm leading-snug text-muted">
             <span className="mt-0.5 shrink-0 text-base">📱</span>
             <p>
-              <strong style={{ color: "#4A3500" }}>Keep your phone close to your mouth</strong>{" "}
+              <strong className="text-heading">Keep your phone close to your mouth</strong>{" "}
               while chanting. We need a very clear voice for accurate AI training.
             </p>
           </div>

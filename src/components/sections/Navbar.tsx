@@ -18,10 +18,9 @@ export function Navbar({ logoSrc }: { logoSrc?: string | null }) {
     <>
       <header
         className={cn(
-          "sticky top-0 z-40 border-b border-border backdrop-blur-md transition-shadow",
+          "sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-md transition-shadow",
           scrolled ? "shadow-sm" : "",
         )}
-        style={{ background: "rgba(255,248,238,0.9)" }}
       >
         <nav className="mx-auto flex h-14 max-w-container items-center justify-center px-4 md:h-16">
           <a href="#top" className="flex items-center gap-2">
