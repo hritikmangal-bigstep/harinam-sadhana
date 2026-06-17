@@ -10,13 +10,15 @@ frontend:
         - echo "S3_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY" >> .env.production.local
         - echo "SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY" >> .env.production.local
         - echo "DATABASE_URL=$DATABASE_URL" >> .env.production.local
-        - test -n "$S3_REGION" && echo "[env-check] S3_REGION is SET" || echo "[env-check] S3_REGION is EMPTY - env vars not injected"
+        - test -n "$S3_REGION" && echo "[env-check] S3_REGION is SET" || echo "[env-check] S3_REGION is EMPTY"
     build:
       commands:
         - npm run build
-        - cp .env.production.local .next/.env.production.local
+        - cp .env.production.local .next/standalone/.env.production.local
+        - cp -r .next/static .next/standalone/.next/static
+        - cp -r public .next/standalone/public
   artifacts:
-    baseDirectory: .next
+    baseDirectory: .next/standalone
     files:
       - '**/*'
   cache:
