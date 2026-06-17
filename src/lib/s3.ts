@@ -19,14 +19,14 @@ export function isAcceptedAudioType(value: string): value is AudioMimeType {
  * Throws if misconfigured so the API route can fail fast with a clear message.
  */
 function getS3Config() {
-  const region = process.env.AWS_REGION;
-  const bucket = process.env.AWS_S3_BUCKET;
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const region = process.env.S3_REGION;
+  const bucket = process.env.S3_BUCKET;
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
 
   if (!region || !bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
-      "S3 is not configured. Set AWS_REGION, AWS_S3_BUCKET, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in .env.local.",
+      "S3 is not configured. Set S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY in .env.local.",
     );
   }
 
