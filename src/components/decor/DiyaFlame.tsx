@@ -28,7 +28,10 @@ export function DiyaFlame({ size = 48 }: { size?: number }) {
       <ellipse cx="24" cy="30" rx="14" ry="3" fill="var(--color-secondary)" />
       <style>{`
         @media (prefers-reduced-motion: no-preference) {
-          .diya-flame { animation: flame-flicker 1.8s ease-in-out infinite alternate; }
+          .diya-flame {
+            animation: flame-flicker 1.8s ease-in-out infinite alternate;
+            transform-origin: 24px 22px;
+          }
         }
       `}</style>
     </svg>
