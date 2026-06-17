@@ -1,6 +1,7 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { AudioMimeType } from "@/types";
+import { buildEnv } from "./build-env";
 
 /** Presigned upload URLs expire after 8 minutes. */
 const PRESIGN_EXPIRY_SECONDS = 8 * 60;
@@ -15,14 +16,14 @@ export function isAcceptedAudioType(value: string): value is AudioMimeType {
 }
 
 /**
- * Reads S3 config from environment only — never hardcode bucket/region/keys.
- * Throws if misconfigured so the API route can fail fast with a clear message.
+ * process.env takes precedence (local dev via .env.local).
+ * buildEnv is the compile-time fallback baked in during Amplify preBuild.
  */
 function getS3Config() {
-  const region = process.env.S3_REGION;
-  const bucket = process.env.S3_BUCKET;
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+  const region = process.env.S3_REGION || buildEnv.S3_REGION;
+  const bucket = process.env.S3_BUCKET || buildEnv.S3_BUCKET;
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID || buildEnv.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || buildEnv.S3_SECRET_ACCESS_KEY;
 
   if (!region || !bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
