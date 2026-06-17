@@ -17,6 +17,7 @@ export interface RecordingValue {
 
 interface AudioRecorderProps {
   onChange: (value: RecordingValue | null) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
   isUploading?: boolean;
   uploadProgress?: number;
 }
@@ -32,6 +33,7 @@ function formatTime(total: number): string {
 
 export function AudioRecorder({
   onChange,
+  onRecordingStateChange,
   isUploading = false,
   uploadProgress = 0,
 }: AudioRecorderProps) {
@@ -52,6 +54,7 @@ export function AudioRecorder({
       });
     }
     if (rec.status === "idle") onChange(null);
+    onRecordingStateChange?.(rec.status === "recording");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rec.status]);
 

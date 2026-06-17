@@ -38,9 +38,9 @@ export async function appendSubmissionRow(row: SheetRow): Promise<void> {
         row.timestamp,
         row.name,
         row.email,
-        row.notes,
-        row.durationSeconds,
         row.audioS3Path,
+        row.durationSeconds,
+        row.notes,
       ]],
     },
   });

@@ -22,6 +22,7 @@ export function SubmissionForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recording, setRecording] = useState<RecordingValue | null>(null);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [isActivelyRecording, setIsActivelyRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -164,6 +165,7 @@ export function SubmissionForm() {
               setRecording(v);
               if (v) setRecordingError(null);
             }}
+            onRecordingStateChange={setIsActivelyRecording}
             isUploading={isUploading}
             uploadProgress={progress}
           />
@@ -194,7 +196,7 @@ export function SubmissionForm() {
 
         <button
           type="submit"
-          disabled={isUploading}
+          disabled={isUploading || isActivelyRecording}
           className="btn-primary gap-2 self-center"
         >
           🙏 {isUploading ? "Sending…" : "Submit My Japa"}
