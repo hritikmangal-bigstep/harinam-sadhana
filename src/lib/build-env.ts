@@ -5,4 +5,7 @@ export const buildEnv = {
   S3_BUCKET: '',
   S3_ACCESS_KEY_ID: '',
   S3_SECRET_ACCESS_KEY: '',
+  GOOGLE_SERVICE_ACCOUNT_EMAIL: '',
+  GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: '',
+  GOOGLE_SHEETS_ID: '',
 } as const;
