@@ -53,7 +53,7 @@ npm run typecheck – tsc --noEmit type check
 - Claude forgets presigned URLs must be generated server-side — always in /api/upload route
 - Claude sometimes skips audio MIME type validation before S3 upload
 - Claude forgets to stop and release MediaRecorder stream tracks on component unmount (mic stays active)
-- Claude hardcodes S3 bucket name or region — always use environment variables
+- Claude hardcodes S3 bucket name or region — always use environment variables (S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY — NOT AWS_ prefix, which is reserved by Amplify)
 - Claude sometimes adds a backend database unnecessarily — this project is S3-only
 - Claude neglects cross-browser MediaRecorder codec support (use webm/opus with mp4 fallback)
 

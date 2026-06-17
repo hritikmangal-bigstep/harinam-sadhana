@@ -1,11 +1,13 @@
 import { BrandLogo } from "@/components/decor/BrandLogo";
+import { TulsiLeafField } from "@/components/decor/TulsiLeafField";
 
 export function Footer({ logoSrc }: { logoSrc?: string | null }) {
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-4">
+    <footer className="relative mt-4">
+      <TulsiLeafField />
       <div className="rangoli-strip" aria-hidden="true" />
-      <div className="flex flex-col items-center gap-2 px-4 py-6 text-center">
+      <div className="relative flex flex-col items-center gap-2 px-4 py-6 text-center">
         <BrandLogo src={logoSrc} size={36} />
         <p className="font-mantra text-mantra text-secondary">हरे कृष्ण</p>
         <p className="font-body text-caption text-muted">
