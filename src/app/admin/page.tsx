@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 interface SessionPartRow {
   session_id: string;
   contributor_id: string;
+  name: string | null;
+  email: string | null;
   started_at: string;
   keyword_clip_count: number;
   keyword_labels: string[] | null;
@@ -20,6 +22,8 @@ interface SessionPartRow {
 interface ResolvedSession {
   sessionId: string;
   contributorId: string;
+  name: string | null;
+  email: string | null;
   startedAt: string;
   keywordClips: { label: string; url: string }[];
   part2Url: string | null;
@@ -59,6 +63,8 @@ async function fetchSessions(): Promise<ResolvedSession[]> {
       return {
         sessionId: s.session_id,
         contributorId: s.contributor_id,
+        name: s.name,
+        email: s.email,
         startedAt: s.started_at,
         keywordClips,
         part2Url,
@@ -121,8 +127,8 @@ export default async function AdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/30 text-left text-xs uppercase tracking-widest text-muted">
                 <tr>
-                  <th className="px-4 py-3">Session</th>
-                  <th className="px-4 py-3">Contributor</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Part 1 · Keywords</th>
                   <th className="px-4 py-3">Part 2 · Panch-tattva</th>
@@ -133,11 +139,11 @@ export default async function AdminPage() {
               <tbody className="divide-y divide-border">
                 {sessions.map((s) => (
                   <tr key={s.sessionId} className="hover:bg-muted/10 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-muted">
-                      {s.sessionId.slice(0, 8)}
+                    <td className="px-4 py-3 text-xs text-foreground font-medium">
+                      {s.name ?? <span className="text-muted italic">Anonymous</span>}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted">
-                      {s.contributorId.slice(0, 8)}
+                    <td className="px-4 py-3 text-xs text-muted">
+                      {s.email ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-foreground whitespace-nowrap">
                       {new Date(s.startedAt).toLocaleString("en-IN", {
