@@ -1,6 +1,7 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { AudioMimeType } from "@/types";
+import { RECITATION_STEP_PREFIXES, type RecordingStep } from "./steps";
 
 /** Presigned upload URLs expire after 8 minutes. */
 const PRESIGN_EXPIRY_SECONDS = 8 * 60;
@@ -105,4 +106,42 @@ export async function createPresignedUploadUrls(
     presignPut(metadataKey, "application/json"),
   ]);
   return { audioUrl, metadataUrl, audioKey };
+}
+
+/**
+ * Build the S3 key for a KWS clip.
+ * - isolated_keyword  → kws-collection/clips/{label}/{contributorId}__{clipId}.{ext}
+ * - recitation steps  → kws-collection/recitations/{prefix}/{contributorId}/{clipId}.{ext}
+ */
+export function buildKwsKey(
+  step: RecordingStep,
+  contributorId: string,
+  clipId: string,
+  contentType: AudioMimeType,
+  label?: string,
+): string {
+  const ext = extensionFor(contentType);
+  if (step === "isolated_keyword") {
+    if (!label) throw new Error("label is required for isolated_keyword step");
+    return `kws-collection/clips/${label}/${contributorId}__${clipId}.${ext}`;
+  }
+  const prefix = RECITATION_STEP_PREFIXES[step];
+  return `kws-collection/recitations/${prefix}/${contributorId}/${clipId}.${ext}`;
+}
+
+/**
+ * Presign a PUT URL for a KWS clip (no sidecar — Supabase is the metadata store).
+ */
+export async function createKwsPresignedUploadUrl(
+  step: RecordingStep,
+  contributorId: string,
+  clipId: string,
+  contentType: AudioMimeType,
+  label?: string,
+): Promise<{ audioUrl: string; audioKey: string; audioStorageUrl: string }> {
+  const { region, bucket } = getS3Config();
+  const audioKey = buildKwsKey(step, contributorId, clipId, contentType, label);
+  const audioUrl = await presignPut(audioKey, contentType);
+  const audioStorageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${audioKey}`;
+  return { audioUrl, audioKey, audioStorageUrl };
 }

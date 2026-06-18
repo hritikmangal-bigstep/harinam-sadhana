@@ -1,5 +1,7 @@
 /** Shared domain types for Harinam Sadhana. */
 
+import type { RecordingStep } from "@/lib/steps";
+
 /** Audio formats we accept — webm/opus primary, mp4 cross-browser fallback. */
 export type AudioMimeType = "audio/webm" | "audio/mp4";
 
@@ -38,4 +40,25 @@ export interface StoredOffering extends DevoteeSubmission {
 
 export interface PresignError {
   error: string;
+}
+
+/** Body sent to POST /api/upload for a KWS clip. */
+export interface KwsPresignRequest {
+  step: RecordingStep;
+  contentType: AudioMimeType;
+  contributorId: string;
+  /** Client-generated UUID identifying this specific clip. */
+  clipId: string;
+  /** Required for isolated_keyword; absent for recitation steps. */
+  label?: string;
+}
+
+/** Response from POST /api/upload for a KWS clip. */
+export interface KwsPresignResponse {
+  /** Presigned PUT URL — upload the audio blob here. */
+  audioUrl: string;
+  /** Final S3 key of the audio object. */
+  audioKey: string;
+  /** Permanent HTTPS URL for the audio object. */
+  audioStorageUrl: string;
 }
