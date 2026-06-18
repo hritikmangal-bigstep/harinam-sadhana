@@ -76,11 +76,12 @@ describe("RecitationStep", () => {
     expect(screen.getByText(/full round/i)).toBeInTheDocument();
   });
 
-  it("auto-calls onClipReady with panch_tattva_recitation when recording completes (step 2)", () => {
+  it("calls onClipReady with panch_tattva_recitation after recording and accepting (step 2)", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={2} onClipReady={onClipReady} />);
 
     simulateRecording();
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
 
     expect(onClipReady).toHaveBeenCalledTimes(1);
     const [clipId, blob, mimeType, meta] = onClipReady.mock.calls[0] as [
@@ -97,18 +98,20 @@ describe("RecitationStep", () => {
     expect(meta.durationMs).toBe(5000);
   });
 
-  it("auto-calls onClipReady with mahamantra_round for step 3", () => {
+  it("calls onClipReady with mahamantra_round after accepting (step 3)", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={3} onClipReady={onClipReady} />);
     simulateRecording();
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
     const [, , , meta] = onClipReady.mock.calls[0] as [string, Blob, string, ClipMeta];
     expect(meta.step).toBe("mahamantra_round");
   });
 
-  it("auto-calls onClipReady with panch_tattva_mahamantra_round for step 4", () => {
+  it("calls onClipReady with panch_tattva_mahamantra_round after accepting (step 4)", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={4} onClipReady={onClipReady} />);
     simulateRecording();
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
     const [, , , meta] = onClipReady.mock.calls[0] as [string, Blob, string, ClipMeta];
     expect(meta.step).toBe("panch_tattva_mahamantra_round");
   });
@@ -125,6 +128,7 @@ describe("RecitationStep", () => {
     render(<RecitationStep step={2} onClipReady={onClipReady} />);
 
     simulateRecording();
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
     expect(onClipReady).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: /re-record/i }));
@@ -138,8 +142,10 @@ describe("RecitationStep", () => {
     render(<RecitationStep step={2} onClipReady={onClipReady} />);
 
     simulateRecording();
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
     fireEvent.click(screen.getByRole("button", { name: /re-record/i }));
     simulateRecording();
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
 
     expect(onClipReady).toHaveBeenCalledTimes(2);
   });

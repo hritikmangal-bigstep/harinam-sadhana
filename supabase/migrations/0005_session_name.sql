@@ -4,9 +4,8 @@
 ALTER TABLE collection_sessions ADD COLUMN IF NOT EXISTS name  TEXT;
 ALTER TABLE collection_sessions ADD COLUMN IF NOT EXISTS email TEXT;
 
--- Rebuild kws_session_parts to include name + email
-DROP VIEW IF EXISTS kws_session_parts;
-CREATE VIEW kws_session_parts AS
+-- Rebuild kws_session_parts to include name + email (atomic replace — no DROP gap)
+CREATE OR REPLACE VIEW kws_session_parts AS
 SELECT
   s.id                                                                      AS session_id,
   s.contributor_id,

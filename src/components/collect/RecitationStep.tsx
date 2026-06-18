@@ -3,11 +3,13 @@
 import { useCallback, useState } from "react";
 import { AudioRecorder, type RecordingValue } from "@/components/recorder/AudioRecorder";
 import { STEP_TO_RECORDING_STEP } from "@/lib/steps";
+import { generateUUID } from "@/lib/uuid";
 import type { ClipMeta } from "./ContributionFlow";
 
 export interface RecitationStepProps {
   step: 2 | 3 | 4;
   onClipReady: (clipId: string, blob: Blob, mimeType: string, meta: ClipMeta) => void;
+  onRecordingChange?: (isRecording: boolean) => void;
 }
 
 interface MantraBlock {
@@ -80,34 +82,30 @@ const STEP_CONTENT: Record<2 | 3 | 4, StepContent> = {
   },
 };
 
-function generateUUID(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.floor(Math.random() * 16);
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-export function RecitationStep({ step, onClipReady }: RecitationStepProps) {
-  const [pending, setPending] = useState<RecordingValue | null>(null);
+export function RecitationStep({ step, onClipReady, onRecordingChange }: RecitationStepProps) {
+  const [pending, setPending] = useState<{ value: RecordingValue; clipId: string } | null>(null);
+  const [accepted, setAccepted] = useState(false);
   const [recorderKey, setRecorderKey] = useState(0);
 
   const handleChange = useCallback((value: RecordingValue | null) => {
-    if (!value) { setPending(null); return; }
-    const clipId = generateUUID();
+    if (!value) { setPending(null); setAccepted(false); return; }
+    setPending({ value, clipId: generateUUID() });
+    setAccepted(false);
+  }, []);
+
+  const handleAccept = useCallback(() => {
+    if (!pending || accepted) return;
     const meta: ClipMeta = {
       step: STEP_TO_RECORDING_STEP[step],
-      durationMs: value.seconds * 1000,
+      durationMs: pending.value.seconds * 1000,
     };
-    onClipReady(clipId, value.blob, value.mimeType, meta);
-    setPending(value);
-  }, [step, onClipReady]);
+    onClipReady(pending.clipId, pending.value.blob, pending.value.mimeType, meta);
+    setAccepted(true);
+  }, [pending, accepted, step, onClipReady]);
 
   const handleReRecord = useCallback(() => {
     setPending(null);
+    setAccepted(false);
     setRecorderKey((k) => k + 1);
   }, []);
 
@@ -147,17 +145,37 @@ export function RecitationStep({ step, onClipReady }: RecitationStepProps) {
       </div>
 
       {/* Recorder */}
-      <AudioRecorder key={recorderKey} onChange={handleChange} hideReRecord />
+      <AudioRecorder key={recorderKey} onChange={handleChange} onRecordingStateChange={onRecordingChange} hideReRecord />
 
-      {/* Re-record shown once a take is captured */}
-      {pending && (
-        <button
-          type="button"
-          onClick={handleReRecord}
-          className="btn-secondary h-10 px-5 text-body-sm"
-        >
-          Re-record
-        </button>
+      {pending && !accepted && (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleAccept}
+            className="btn-primary h-10 px-5 text-body-sm"
+          >
+            ✓ Accept
+          </button>
+          <button
+            type="button"
+            onClick={handleReRecord}
+            className="btn-secondary h-10 px-5 text-body-sm"
+          >
+            Re-record
+          </button>
+        </div>
+      )}
+      {accepted && (
+        <div className="flex items-center gap-3">
+          <span className="font-body text-body-sm font-semibold text-green-600">✓ Accepted</span>
+          <button
+            type="button"
+            onClick={handleReRecord}
+            className="btn-secondary h-10 px-5 text-body-sm"
+          >
+            Re-record
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
+import { notFound } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase";
-import { createPresignedGetUrl } from "@/lib/s3";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +25,10 @@ interface ResolvedSession {
   name: string | null;
   email: string | null;
   startedAt: string;
-  keywordClips: { label: string; url: string }[];
-  part2Url: string | null;
-  part3Url: string | null;
-  part4Url: string | null;
+  keywordClips: { label: string; key: string }[];
+  part2Key: string | null;
+  part3Key: string | null;
+  part4Key: string | null;
 }
 
 // ── Data fetching ──────────────────────────────────────────────────────────
@@ -43,44 +43,34 @@ async function fetchSessions(): Promise<ResolvedSession[]> {
 
   if (error || !data) return [];
 
-  return Promise.all(
-    (data as SessionPartRow[]).map(async (s) => {
-      const keys = s.keyword_s3_keys ?? [];
-      const labels = s.keyword_labels ?? [];
-
-      const [keywordClips, part2Url, part3Url, part4Url] = await Promise.all([
-        Promise.all(
-          keys.map(async (key, i) => ({
-            label: labels[i] ?? "?",
-            url: await createPresignedGetUrl(key),
-          })),
-        ),
-        s.part2_s3_key ? createPresignedGetUrl(s.part2_s3_key) : Promise.resolve(null),
-        s.part3_s3_key ? createPresignedGetUrl(s.part3_s3_key) : Promise.resolve(null),
-        s.part4_s3_key ? createPresignedGetUrl(s.part4_s3_key) : Promise.resolve(null),
-      ]);
-
-      return {
-        sessionId: s.session_id,
-        contributorId: s.contributor_id,
-        name: s.name,
-        email: s.email,
-        startedAt: s.started_at,
-        keywordClips,
-        part2Url,
-        part3Url,
-        part4Url,
-      };
-    }),
-  );
+  return (data as SessionPartRow[]).map((s) => {
+    const keys = s.keyword_s3_keys ?? [];
+    const labels = s.keyword_labels ?? [];
+    return {
+      sessionId: s.session_id,
+      contributorId: s.contributor_id,
+      name: s.name,
+      email: s.email,
+      startedAt: s.started_at,
+      keywordClips: keys.map((key, i) => ({ label: labels[i] ?? "?", key })),
+      part2Key: s.part2_s3_key,
+      part3Key: s.part3_s3_key,
+      part4Key: s.part4_s3_key,
+    };
+  });
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function ListenLink({ url, label }: { url: string; label?: string }) {
+function EmptyCell() {
+  return <span className="text-muted text-xs">—</span>;
+}
+
+function ListenLink({ s3Key, label }: { s3Key: string | null; label?: string }) {
+  if (!s3Key) return <EmptyCell />;
   return (
     <a
-      href={url}
+      href={`/api/listen?key=${encodeURIComponent(s3Key)}`}
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
@@ -90,16 +80,12 @@ function ListenLink({ url, label }: { url: string; label?: string }) {
   );
 }
 
-function EmptyCell() {
-  return <span className="text-muted text-xs">—</span>;
-}
-
-function KeywordClips({ clips }: { clips: { label: string; url: string }[] }) {
+function KeywordClips({ clips }: { clips: { label: string; key: string }[] }) {
   if (clips.length === 0) return <EmptyCell />;
   return (
     <div className="flex flex-wrap gap-1">
       {clips.map((c, i) => (
-        <ListenLink key={i} url={c.url} label={c.label} />
+        <ListenLink key={i} s3Key={c.key} label={c.label} />
       ))}
     </div>
   );
@@ -107,7 +93,19 @@ function KeywordClips({ clips }: { clips: { label: string; url: string }[] }) {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const adminToken = process.env.ADMIN_TOKEN;
+  const provided = Array.isArray(searchParams.token)
+    ? searchParams.token[0]
+    : searchParams.token;
+  if (!adminToken || provided !== adminToken) {
+    notFound();
+  }
+
   const sessions = await fetchSessions();
 
   return (
@@ -117,7 +115,7 @@ export default async function AdminPage() {
           KWS Session Viewer
         </h1>
         <p className="text-sm text-muted mb-6">
-          {sessions.length} session{sessions.length !== 1 ? "s" : ""} · links expire in 1 hour
+          {sessions.length} session{sessions.length !== 1 ? "s" : ""}
         </p>
 
         {sessions.length === 0 ? (
@@ -155,13 +153,13 @@ export default async function AdminPage() {
                       <KeywordClips clips={s.keywordClips} />
                     </td>
                     <td className="px-4 py-3">
-                      {s.part2Url ? <ListenLink url={s.part2Url} /> : <EmptyCell />}
+                      <ListenLink s3Key={s.part2Key} />
                     </td>
                     <td className="px-4 py-3">
-                      {s.part3Url ? <ListenLink url={s.part3Url} /> : <EmptyCell />}
+                      <ListenLink s3Key={s.part3Key} />
                     </td>
                     <td className="px-4 py-3">
-                      {s.part4Url ? <ListenLink url={s.part4Url} /> : <EmptyCell />}
+                      <ListenLink s3Key={s.part4Key} />
                     </td>
                   </tr>
                 ))}

@@ -45,14 +45,12 @@ describe("ContributionFlow", () => {
     expect(screen.getByRole("heading", { name: "Panch-tattva" })).toBeInTheDocument();
   });
 
-  it("Save & Continue calls onStepComplete and advances to step 2", async () => {
+  it("Save & Continue advances to step 2", async () => {
     const user = userEvent.setup();
-    const onStepComplete = jest.fn().mockResolvedValue(undefined);
-    render(<ContributionFlow onStepComplete={onStepComplete} />);
+    render(<ContributionFlow />);
 
     await user.click(screen.getByRole("button", { name: /save & continue/i }));
 
-    expect(onStepComplete).toHaveBeenCalledWith(1);
     expect(screen.getByText("Step 2 of 4")).toBeInTheDocument();
   });
 

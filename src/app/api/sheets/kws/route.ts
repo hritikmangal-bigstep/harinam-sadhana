@@ -27,7 +27,7 @@ interface SessionPart {
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
   try { body = await request.json(); } catch {
-    return NextResponse.json({ ok: false }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const raw = (body ?? {}) as Record<string, unknown>;
@@ -100,6 +100,10 @@ async function runAsync(payload: KwsSheetPayload): Promise<void> {
   }
 }
 
+function sanitizeCell(value: string): string {
+  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+}
+
 async function appendSheetRow(
   timestamp: string, name: string, email: string, sessionId: string,
   part1: string, part2: string, part3: string, part4: string,
@@ -123,9 +127,9 @@ async function appendSheetRow(
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
     range: "KWS!A:H",
-    valueInputOption: "USER_ENTERED",
+    valueInputOption: "RAW",
     requestBody: {
-      values: [[timestamp, name, email, sessionId, part1, part2, part3, part4]],
+      values: [[timestamp, sanitizeCell(name), sanitizeCell(email), sessionId, part1, part2, part3, part4]],
     },
   });
 }

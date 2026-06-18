@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { getContributorId } from "@/lib/contributor-id";
-import { saveAndEnqueue, drainStep } from "@/lib/autosave/upload-queue";
+import { generateUUID } from "@/lib/uuid";
+import { saveAndEnqueue, drainStep, cancelDrain } from "@/lib/autosave/upload-queue";
 import type { ClipRecord } from "@/lib/autosave/store";
 import type { RecordingStep } from "@/lib/steps";
 import { SuccessOverlay } from "@/components/state/SuccessOverlay";
@@ -23,16 +24,6 @@ export type OnClipReady = (
   meta: ClipMeta,
 ) => void;
 
-function generateUUID(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.floor(Math.random() * 16);
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
 
 interface StepMeta {
   title: string;
@@ -58,16 +49,14 @@ const STEPS: Record<1 | 2 | 3 | 4, StepMeta> = {
   },
 };
 
-interface ContributionFlowProps {
-  onStepComplete?: (step: number) => Promise<void>;
-}
-
-export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
+export function ContributionFlow() {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isComplete, setIsComplete] = useState(false);
   const [contributorId] = useState(() => getContributorId());
   const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [identityMode, setIdentityMode] = useState<"anonymous" | "named">("anonymous");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -75,7 +64,7 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   // Step 1 keyword take counts.
   const [takeCounts, setTakeCounts] = useState<Record<string, number>>({});
 
-  const [sessionId] = useState<string>(() => {
+  const [sessionId, setSessionId] = useState<string>(() => {
     if (typeof localStorage === "undefined") return generateUUID();
     const stored = localStorage.getItem("kws_session_id");
     if (stored) return stored;
@@ -118,14 +107,17 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   };
 
   const handleSaveAndContinue = async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
     setIsSaving(true);
     try {
       // Race drain against a 6s timeout so hung uploads never block the UI.
+      let drained = false;
       await Promise.race([
-        drainStep(currentStep),
+        drainStep(currentStep).then(() => { drained = true; }),
         new Promise<void>((resolve) => setTimeout(resolve, 6000)),
       ]);
-      if (onStepComplete) await onStepComplete(currentStep);
+      if (!drained) cancelDrain(currentStep);
 
       // Step 4 completion: fire-and-forget summary row to Google Sheets.
       if (currentStep === 4) {
@@ -143,6 +135,7 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
       }
       advance(true);
     } finally {
+      isSavingRef.current = false;
       setIsSaving(false);
     }
   };
@@ -162,6 +155,14 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           setIdentityMode("anonymous");
           setName("");
           setEmail("");
+          if (typeof localStorage !== "undefined") {
+            localStorage.removeItem("kws_session_id");
+          }
+          const newId = generateUUID();
+          if (typeof localStorage !== "undefined") {
+            localStorage.setItem("kws_session_id", newId);
+          }
+          setSessionId(newId);
         }}
       />
     );
@@ -233,12 +234,14 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
             takeCounts={takeCounts}
             onTakeComplete={handleTakeComplete}
             onTakeCountsChange={setTakeCounts}
+            onRecordingChange={setIsRecording}
           />
         ) : (
           <RecitationStep
             key={currentStep}
             step={currentStep as 2 | 3 | 4}
             onClipReady={handleClipReady}
+            onRecordingChange={setIsRecording}
           />
         )}
 
@@ -246,8 +249,8 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           <button
             type="button"
             onClick={() => void handleSaveAndContinue()}
-            disabled={isSaving}
-            className="btn-primary w-full max-w-xs gap-2"
+            disabled={isSaving || isRecording}
+            className="btn-primary w-full max-w-xs gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving
               ? "Saving…"
@@ -259,7 +262,8 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           <button
             type="button"
             onClick={handleSkip}
-            className="font-body text-body-sm text-muted underline-offset-2 transition-colors hover:text-primary-dark hover:underline"
+            disabled={isRecording}
+            className="font-body text-body-sm text-muted underline-offset-2 transition-colors hover:text-primary-dark hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Skip this step
           </button>
