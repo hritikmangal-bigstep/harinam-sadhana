@@ -65,7 +65,7 @@ export async function offerSession({
     throw new Error(data?.error ?? "Could not prepare your submission.");
   }
 
-  const { audioUrl, metadataUrl, audioKey, offeredAt } =
+  const { audioUrl, metadataUrl, audioKey, audioStorageUrl, offeredAt } =
     (await presignRes.json()) as PresignResponse;
 
   // Step 2 — upload audio then metadata sidecar to S3
@@ -87,7 +87,7 @@ export async function offerSession({
       email: submission.email || "",
       notes: submission.notes || "",
       durationSeconds: submission.durationSeconds ?? 0,
-      audioS3Path: audioKey,
+      audioS3Path: audioStorageUrl,
     }),
   }).catch(() => {});
 }

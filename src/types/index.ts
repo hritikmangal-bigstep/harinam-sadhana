@@ -26,6 +26,8 @@ export interface PresignResponse {
   metadataUrl: string;
   /** Final S3 key of the audio object (for reference/logging). */
   audioKey: string;
+  /** Permanent S3 HTTPS URL for the audio object (used for Sheets hyperlink). */
+  audioStorageUrl: string;
   /** Server-generated ISO 8601 timestamp of when the offering was received. */
   offeredAt: string;
 }

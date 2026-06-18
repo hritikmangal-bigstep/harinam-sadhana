@@ -41,6 +41,10 @@ function getClient(region: string, accessKeyId: string, secretAccessKey: string)
     cachedClient = new S3Client({
       region,
       credentials: { accessKeyId, secretAccessKey },
+      // Only compute checksums when S3 requires them — prevents a CRC32
+      // placeholder being embedded in presigned URLs that mismatches the
+      // actual payload uploaded by the browser.
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
   }
   return cachedClient;
@@ -88,6 +92,8 @@ async function presignPut(key: string, contentType: string): Promise<string> {
     Key: key,
     ContentType: contentType,
   });
+  // Disable SDK auto-checksum so the presigned URL doesn't embed a CRC32
+  // placeholder that mismatches the real payload the browser uploads.
   return getSignedUrl(client, command, { expiresIn: PRESIGN_EXPIRY_SECONDS });
 }
 
@@ -99,11 +105,13 @@ export async function createPresignedUploadUrls(
   date: string,
   contentType: AudioMimeType,
   stamp: number = Date.now(),
-): Promise<{ audioUrl: string; metadataUrl: string; audioKey: string }> {
+): Promise<{ audioUrl: string; metadataUrl: string; audioKey: string; audioStorageUrl: string }> {
   const { audioKey, metadataKey } = buildKeys(name, date, contentType, stamp);
+  const { region, bucket } = getS3Config();
   const [audioUrl, metadataUrl] = await Promise.all([
     presignPut(audioKey, contentType),
     presignPut(metadataKey, "application/json"),
   ]);
-  return { audioUrl, metadataUrl, audioKey };
+  const audioStorageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${audioKey}`;
+  return { audioUrl, metadataUrl, audioKey, audioStorageUrl };
 }
