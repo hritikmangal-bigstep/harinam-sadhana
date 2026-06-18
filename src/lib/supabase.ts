@@ -9,13 +9,23 @@ import { buildEnv } from "@/lib/build-env";
  * IMPORTANT: SUPABASE_SERVICE_ROLE_KEY bypasses RLS — never expose it to
  * the browser. This module must only be imported in server-side code.
  */
+/** Accepts either the REST URL (https://xxx.supabase.co) or the PostgreSQL
+ *  connection string (postgresql://postgres:pwd@db.xxx.supabase.co:5432/postgres)
+ *  and always returns the REST URL the JS client needs. */
+function toRestUrl(raw: string): string {
+  if (raw.startsWith("postgresql://") || raw.startsWith("postgres://")) {
+    const match = /db\.([^.]+)\.supabase\.co/.exec(raw);
+    if (match) return `https://${match[1]}.supabase.co`;
+  }
+  return raw;
+}
+
 function getSupabaseConfig(): { url: string; serviceRoleKey: string } {
-  const url =
-    process.env.SUPABASE_URL || buildEnv.SUPABASE_URL;
+  const raw = process.env.SUPABASE_URL || buildEnv.SUPABASE_URL;
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY || buildEnv.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url) {
+  if (!raw) {
     throw new Error(
       "Supabase is not configured. Set SUPABASE_URL in .env.local.",
     );
@@ -26,7 +36,7 @@ function getSupabaseConfig(): { url: string; serviceRoleKey: string } {
     );
   }
 
-  return { url, serviceRoleKey };
+  return { url: toRestUrl(raw), serviceRoleKey };
 }
 
 let cachedClient: SupabaseClient | null = null;
