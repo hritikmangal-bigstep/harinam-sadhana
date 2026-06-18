@@ -28,18 +28,18 @@ describe("getSupabaseClient", () => {
     process.env = originalEnv;
   });
 
-  it("throws a clear error when SUPABASE_URL is absent", () => {
-    delete process.env.SUPABASE_URL;
+  it("throws a clear error when NEXT_PUBLIC_SUPABASE_URL is absent", () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-key";
 
     const getClient = freshGetSupabaseClient();
     expect(() => getClient()).toThrow(
-      "Supabase is not configured. Set SUPABASE_URL in .env.local.",
+      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL in .env.local.",
     );
   });
 
   it("throws a clear error when SUPABASE_SERVICE_ROLE_KEY is absent", () => {
-    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     const getClient = freshGetSupabaseClient();
@@ -51,11 +51,11 @@ describe("getSupabaseClient", () => {
   it("prefers process.env values over buildEnv placeholders", () => {
     const envUrl = "https://env-project.supabase.co";
     const envKey = "env-service-role-key";
-    process.env.SUPABASE_URL = envUrl;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = envUrl;
     process.env.SUPABASE_SERVICE_ROLE_KEY = envKey;
 
     // Confirm buildEnv placeholders differ (they are empty strings by design).
-    expect(buildEnv.SUPABASE_URL).toBe("");
+    expect(buildEnv.NEXT_PUBLIC_SUPABASE_URL).toBe("");
     expect(buildEnv.SUPABASE_SERVICE_ROLE_KEY).toBe("");
 
     const getClient = freshGetSupabaseClient();

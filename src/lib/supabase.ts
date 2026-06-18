@@ -21,13 +21,13 @@ function toRestUrl(raw: string): string {
 }
 
 function getSupabaseConfig(): { url: string; serviceRoleKey: string } {
-  const raw = process.env.SUPABASE_URL || buildEnv.SUPABASE_URL;
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL || buildEnv.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY || buildEnv.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!raw) {
     throw new Error(
-      "Supabase is not configured. Set SUPABASE_URL in .env.local.",
+      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL in .env.local.",
     );
   }
   if (!serviceRoleKey) {

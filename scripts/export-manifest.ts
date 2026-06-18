@@ -55,13 +55,13 @@ const cleanOnly = args.includes("--clean-only");
 
 // ── Supabase client ────────────────────────────────────────────────────────────
 
-const url = process.env.SUPABASE_URL || buildEnv.SUPABASE_URL;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || buildEnv.NEXT_PUBLIC_SUPABASE_URL;
 const key =
   process.env.SUPABASE_SERVICE_ROLE_KEY || buildEnv.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!url || !key) {
   process.stderr.write(
-    "Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.\n" +
+    "Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.\n" +
       "Set them in your environment or .env.local file.\n"
   );
   process.exit(1);
