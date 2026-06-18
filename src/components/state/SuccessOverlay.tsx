@@ -68,7 +68,7 @@ export function SuccessOverlay({
         Hare Krishna!
       </motion.h2>
       <p className="max-w-content font-body text-body-lg text-foreground">
-        Your session has been offered. Jai Sri Krishna.
+        Thank you for your contribution!
       </p>
       <button type="button" onClick={onDismiss} className="btn-secondary mt-2">
         Submit Another Session

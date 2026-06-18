@@ -27,6 +27,7 @@ export function SubmissionForm() {
   const [progress, setProgress] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [offered, setOffered] = useState(false);
+  const [recorderKey, setRecorderKey] = useState(0);
 
   const set = (key: keyof Values, value: string) =>
     setValues((v) => ({ ...v, [key]: value }));
@@ -161,6 +162,7 @@ export function SubmissionForm() {
           </div>
 
           <AudioRecorder
+            key={recorderKey}
             onChange={(v) => {
               setRecording(v);
               if (v) setRecordingError(null);
@@ -213,6 +215,10 @@ export function SubmissionForm() {
             setOffered(false);
             setRecording(null);
             setValues({ name: "", email: "", notes: "" });
+            setErrors({});
+            setRecordingError(null);
+            setSubmitError(null);
+            setRecorderKey((k) => k + 1);
           }}
         />
       )}
