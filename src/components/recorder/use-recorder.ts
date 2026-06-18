@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AudioMimeType } from "@/types";
+import {
+  computeQualityMetrics,
+  decodeBlob,
+  type QualityMetrics,
+} from "@/lib/quality-metrics";
 
 export type RecorderStatus =
   | "idle"
@@ -28,6 +33,8 @@ interface RecorderState {
   /** True briefly when a release happened under MIN_DURATION_SECONDS. */
   tooShort: boolean;
   error: string | null;
+  /** Quality metrics computed asynchronously after a recording is finalised. Null until available. */
+  metrics: QualityMetrics | null;
 }
 
 /** Pick the best-supported recording MIME: webm/opus, else mp4 fallback. */
@@ -50,6 +57,7 @@ export function useRecorder() {
     mimeType: null,
     tooShort: false,
     error: null,
+    metrics: null,
   });
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -145,7 +153,14 @@ export function useRecorder() {
           audioBlob: blob,
           audioUrl: url,
           mimeType,
+          metrics: null,
         }));
+        // Compute quality metrics asynchronously; update state when ready.
+        void decodeBlob(blob).then((buffer) => {
+          if (buffer) {
+            setState((s) => ({ ...s, metrics: computeQualityMetrics(buffer) }));
+          }
+        });
       };
 
       // Live amplitude graph for the petal waveform.
@@ -213,6 +228,7 @@ export function useRecorder() {
       mimeType: null,
       tooShort: false,
       error: null,
+      metrics: null,
     });
   }, []);
 
