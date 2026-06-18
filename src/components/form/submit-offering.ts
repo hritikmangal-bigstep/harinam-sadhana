@@ -78,6 +78,8 @@ export async function offerSession({
   await putWithProgress(metadataUrl, metadataBlob, "application/json", () => {});
 
   // Step 3 — record in Google Sheets (fire-and-forget; audio already safe in S3)
+  const listenBase = API_BASE || (typeof window !== "undefined" ? window.location.origin : "");
+  const listenUrl = `${listenBase}/api/listen?key=${encodeURIComponent(audioKey)}`;
   void fetch(`${API_BASE}/api/record`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -87,7 +89,7 @@ export async function offerSession({
       email: submission.email || "",
       notes: submission.notes || "",
       durationSeconds: submission.durationSeconds ?? 0,
-      audioS3Path: audioStorageUrl,
+      audioS3Path: listenUrl,
     }),
   }).catch(() => {});
 }

@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { AudioMimeType } from "@/types";
 import { buildEnv } from "./build-env";
@@ -81,6 +81,14 @@ export function buildKeys(
     audioKey: `${base}.${extensionFor(contentType)}`,
     metadataKey: `${base}.json`,
   };
+}
+
+/** Generate a presigned GET URL so a private S3 object can be streamed. */
+export async function createPresignedGetUrl(key: string, expiresIn = 3600): Promise<string> {
+  const { region, bucket, accessKeyId, secretAccessKey } = getS3Config();
+  const client = getClient(region, accessKeyId, secretAccessKey);
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return getSignedUrl(client, command, { expiresIn });
 }
 
 /** Generate a single presigned PUT URL for an object. */
