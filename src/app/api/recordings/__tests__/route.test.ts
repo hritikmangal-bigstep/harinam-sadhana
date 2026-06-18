@@ -1,13 +1,19 @@
+/**
+ * @jest-environment node
+ */
 import { POST } from "../route";
 
 const mockUpsert = jest.fn();
 const mockSingle = jest.fn();
 
+// Suppress the fire-and-forget fetch to /api/confirm — no server runs in tests.
+global.fetch = jest.fn().mockResolvedValue({ ok: true } as Response);
+
 jest.mock("@/lib/supabase", () => ({
   getSupabaseClient: () => ({
     from: (table: string) => ({
       upsert: (data: unknown, opts?: unknown) => {
-        mockUpsert(table, data, opts);
+        const override = mockUpsert(table, data, opts);
         if (table === "recordings") {
           return {
             select: () => ({
@@ -15,7 +21,7 @@ jest.mock("@/lib/supabase", () => ({
             }),
           };
         }
-        return { data: null, error: null };
+        return override ?? { data: null, error: null };
       },
     }),
   }),
