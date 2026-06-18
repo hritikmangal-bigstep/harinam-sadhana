@@ -6,6 +6,10 @@ import { saveAndEnqueue, drainStep } from "@/lib/autosave/upload-queue";
 import type { ClipRecord } from "@/lib/autosave/store";
 import type { RecordingStep } from "@/lib/steps";
 import { StepIndicator } from "./StepIndicator";
+import { PromptedRecorder } from "./PromptedRecorder";
+import { RecitationStep } from "./RecitationStep";
+import { DemographicsStep } from "./DemographicsStep";
+import type { DemographicsData } from "./DemographicsStep";
 
 export interface ClipMeta {
   step: RecordingStep;
@@ -39,23 +43,19 @@ interface StepMeta {
 const STEPS: Record<1 | 2 | 3 | 4, StepMeta> = {
   1: {
     title: "Keywords",
-    description:
-      "Speak individual names and keywords used in Harinam chanting.",
+    description: "Speak individual names and keywords used in Harinam chanting.",
   },
   2: {
     title: "Panch-tattva",
-    description:
-      "Recite the Panch-tattva mantra at a clear, measured pace.",
+    description: "Recite the Panch-tattva mantra at a clear, measured pace.",
   },
   3: {
     title: "Maha-mantra",
-    description:
-      "Chant one round of the Hare Krishna Maha-mantra.",
+    description: "Chant one round of the Hare Krishna Maha-mantra.",
   },
   4: {
     title: "Full round",
-    description:
-      "Record a complete, uninterrupted round on your japa beads.",
+    description: "Record a complete, uninterrupted round on your japa beads.",
   },
 };
 
@@ -69,6 +69,12 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   const [isComplete, setIsComplete] = useState(false);
   const [contributorId] = useState(() => getContributorId());
   const [isSaving, setIsSaving] = useState(false);
+
+  // Demographics gate — shown before Step 1 on first render.
+  const [demographicsSubmitted, setDemographicsSubmitted] = useState(false);
+
+  // Step 1 keyword take counts.
+  const [takeCounts, setTakeCounts] = useState<Record<string, number>>({});
 
   const [sessionId] = useState<string>(() => {
     if (typeof localStorage === "undefined") return generateUUID();
@@ -95,6 +101,12 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
     void saveAndEnqueue(record);
   };
 
+  // Step 1 keyword take handler — generates a clipId and calls handleClipReady.
+  const handleTakeComplete = (label: string, audio: Blob, mimeType: string) => {
+    const clipId = generateUUID();
+    handleClipReady(clipId, audio, mimeType, { step: "isolated_keyword", label });
+  };
+
   const advance = (completed: boolean) => {
     if (completed) {
       setCompletedSteps((prev) => new Set(prev).add(currentStep));
@@ -111,6 +123,20 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
     try {
       await drainStep(currentStep);
       if (onStepComplete) await onStepComplete(currentStep);
+
+      // Step 4 completion: fire-and-forget summary row to Google Sheets.
+      if (currentStep === 4) {
+        void fetch("/api/sheets/kws", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contributorId,
+            sessionId,
+            completedSteps: Array.from(completedSteps),
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -119,6 +145,12 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
 
   const handleSkip = () => {
     advance(false);
+  };
+
+  // Demographics handlers
+  const handleDemographicsSave = async (_data: DemographicsData) => {
+    // TODO: pass demographics to upload queue (follow-up task)
+    setDemographicsSubmitted(true);
   };
 
   if (isComplete) {
@@ -140,9 +172,20 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           </p>
         </div>
         <p className="font-body text-caption text-muted">
-          Contributor ID: <span className="font-mono text-xs">{contributorId}</span>
+          Contributor ID:{" "}
+          <span className="font-mono text-xs">{contributorId}</span>
         </p>
       </div>
+    );
+  }
+
+  // Demographics gate — render before the step content on first visit.
+  if (!demographicsSubmitted) {
+    return (
+      <DemographicsStep
+        onSave={handleDemographicsSave}
+        onSkip={() => setDemographicsSubmitted(true)}
+      />
     );
   }
 
@@ -161,15 +204,24 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           <p className="font-body text-body text-muted">{step.description}</p>
         </div>
 
-        {/* Step content — placeholder until PromptedRecorder is wired in (U5) */}
-        <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-border bg-surface-alt px-4 py-8 text-center font-body text-body-sm text-muted">
-          Step {currentStep}: {step.title} capture coming soon
-        </div>
+        {/* Step content */}
+        {currentStep === 1 ? (
+          <PromptedRecorder
+            takeCounts={takeCounts}
+            onTakeComplete={handleTakeComplete}
+            onTakeCountsChange={setTakeCounts}
+          />
+        ) : (
+          <RecitationStep
+            step={currentStep as 2 | 3 | 4}
+            onClipReady={handleClipReady}
+          />
+        )}
 
         <div className="flex flex-col items-center gap-3">
           <button
             type="button"
-            onClick={handleSaveAndContinue}
+            onClick={() => void handleSaveAndContinue()}
             disabled={isSaving}
             className="btn-primary w-full max-w-xs gap-2"
           >

@@ -117,7 +117,7 @@ const rows: ManifestRow[] = [];
 
     if (!data || data.length === 0) break;
 
-    rows.push(...(data as ManifestRow[]));
+    rows.push(...(data as unknown as ManifestRow[]));
     page++;
   }
 

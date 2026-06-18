@@ -54,7 +54,7 @@ describe("RecitationStep", () => {
 
   it("renders the correct prompt for step 3 (Maha-mantra)", () => {
     render(<RecitationStep step={3} onClipReady={makeOnClipReady()} />);
-    expect(screen.getByText(/hare krishna maha-mantra/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/hare krishna maha-mantra/i).length).toBeGreaterThan(0);
     expect(
       screen.getByText(/please chant one full round/i),
     ).toBeInTheDocument();
