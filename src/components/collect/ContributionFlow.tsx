@@ -5,11 +5,10 @@ import { getContributorId } from "@/lib/contributor-id";
 import { saveAndEnqueue, drainStep } from "@/lib/autosave/upload-queue";
 import type { ClipRecord } from "@/lib/autosave/store";
 import type { RecordingStep } from "@/lib/steps";
+import { SuccessOverlay } from "@/components/state/SuccessOverlay";
 import { StepIndicator } from "./StepIndicator";
 import { PromptedRecorder } from "./PromptedRecorder";
 import { RecitationStep } from "./RecitationStep";
-import { DemographicsStep } from "./DemographicsStep";
-import type { DemographicsData } from "./DemographicsStep";
 
 export interface ClipMeta {
   step: RecordingStep;
@@ -69,9 +68,9 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   const [isComplete, setIsComplete] = useState(false);
   const [contributorId] = useState(() => getContributorId());
   const [isSaving, setIsSaving] = useState(false);
-
-  // Demographics gate — shown before Step 1 on first render.
-  const [demographicsSubmitted, setDemographicsSubmitted] = useState(false);
+  const [identityMode, setIdentityMode] = useState<"anonymous" | "named">("anonymous");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
 
   // Step 1 keyword take counts.
   const [takeCounts, setTakeCounts] = useState<Record<string, number>>({});
@@ -121,7 +120,11 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   const handleSaveAndContinue = async () => {
     setIsSaving(true);
     try {
-      await drainStep(currentStep);
+      // Race drain against a 6s timeout so hung uploads never block the UI.
+      await Promise.race([
+        drainStep(currentStep),
+        new Promise<void>((resolve) => setTimeout(resolve, 6000)),
+      ]);
       if (onStepComplete) await onStepComplete(currentStep);
 
       // Step 4 completion: fire-and-forget summary row to Google Sheets.
@@ -137,54 +140,28 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           }),
         });
       }
+      advance(true);
     } finally {
       setIsSaving(false);
     }
-    advance(true);
   };
 
   const handleSkip = () => {
     advance(false);
   };
 
-  // Demographics handlers
-  const handleDemographicsSave = async (_data: DemographicsData) => {
-    // TODO: pass demographics to upload queue (follow-up task)
-    setDemographicsSubmitted(true);
-  };
-
   if (isComplete) {
     return (
-      <div className="flex flex-col items-center gap-6 rounded-2xl border border-border bg-surface p-8 text-center shadow-md">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-light text-4xl">
-          🙏
-        </div>
-        <div className="flex flex-col gap-2">
-          <h2 className="font-heading text-h2 text-heading">
-            Thank you for contributing!
-          </h2>
-          <p className="font-body text-body text-muted">
-            {completedSteps.size === 0
-              ? "Your session has been recorded."
-              : completedSteps.size === 1
-              ? "You completed 1 step. Every contribution helps!"
-              : `You completed ${completedSteps.size} steps. Your recordings help train the AI.`}
-          </p>
-        </div>
-        <p className="font-body text-caption text-muted">
-          Contributor ID:{" "}
-          <span className="font-mono text-xs">{contributorId}</span>
-        </p>
-      </div>
-    );
-  }
-
-  // Demographics gate — render before the step content on first visit.
-  if (!demographicsSubmitted) {
-    return (
-      <DemographicsStep
-        onSave={handleDemographicsSave}
-        onSkip={() => setDemographicsSubmitted(true)}
+      <SuccessOverlay
+        onDismiss={() => {
+          setIsComplete(false);
+          setCurrentStep(1);
+          setCompletedSteps(new Set());
+          setTakeCounts({});
+          setIdentityMode("anonymous");
+          setName("");
+          setEmail("");
+        }}
       />
     );
   }
@@ -193,6 +170,51 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Identity selection */}
+      <div className="rounded-xl border border-border bg-surface p-4 shadow-sm">
+        {identityMode === "named" ? (
+          <div className="flex flex-col gap-3">
+            <input
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-body text-body-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/40"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name or spiritual name"
+            />
+            <input
+              type="email"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-body text-body-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/40"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com (for beta invite)"
+            />
+            <button
+              type="button"
+              onClick={() => { setIdentityMode("anonymous"); setName(""); setEmail(""); }}
+              className="self-start cursor-pointer font-body text-body-sm font-medium text-primary-dark underline underline-offset-2 hover:opacity-75"
+            >
+              Stay anonymous instead
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setIdentityMode("anonymous")}
+              className="flex-1 rounded-lg border-2 border-primary bg-primary-light py-2 font-body text-body-sm font-semibold text-primary-dark transition-colors"
+            >
+              Stay Anonymous
+            </button>
+            <button
+              type="button"
+              onClick={() => setIdentityMode("named")}
+              className="flex-1 rounded-lg border-2 border-border bg-background py-2 font-body text-body-sm font-medium text-muted transition-colors hover:border-primary hover:text-primary-dark"
+            >
+              📲 Get Beta Access
+            </button>
+          </div>
+        )}
+      </div>
+
       <StepIndicator currentStep={currentStep} completedSteps={completedSteps} />
 
       <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6 shadow-md">
@@ -213,6 +235,7 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           />
         ) : (
           <RecitationStep
+            key={currentStep}
             step={currentStep as 2 | 3 | 4}
             onClipReady={handleClipReady}
           />

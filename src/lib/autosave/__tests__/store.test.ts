@@ -162,8 +162,7 @@ describe("store — graceful degradation when IndexedDB is unavailable", () => {
   it("resolves without throwing when indexedDB is missing", async () => {
     // Simulate unavailability by nullifying the global before module load
     const originalIndexedDB = globalThis.indexedDB;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).indexedDB = undefined;
+    (globalThis as unknown as Record<string, unknown>).indexedDB = undefined;
 
     jest.resetModules();
     const {
@@ -182,7 +181,6 @@ describe("store — graceful degradation when IndexedDB is unavailable", () => {
     await expect(del("no-idb")).resolves.toBeUndefined();
 
     // Restore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).indexedDB = originalIndexedDB;
+    (globalThis as unknown as Record<string, unknown>).indexedDB = originalIndexedDB;
   });
 });

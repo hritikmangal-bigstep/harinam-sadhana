@@ -13,8 +13,7 @@ function freshGetSupabaseClient() {
   jest.mock("@supabase/supabase-js", () => ({
     createClient: (...args: unknown[]) => mockCreateClient(...args),
   }));
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require("@/lib/supabase").getSupabaseClient as () => unknown;
+  return require("@/lib/supabase").getSupabaseClient as () => unknown; // eslint-disable-line
 }
 
 describe("getSupabaseClient", () => {
