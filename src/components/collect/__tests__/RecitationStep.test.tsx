@@ -4,11 +4,16 @@ import type { RecordingValue } from "@/components/recorder/AudioRecorder";
 import type { ClipMeta } from "../ContributionFlow";
 
 // ── Mock AudioRecorder ─────────────────────────────────────────────────────
-// Web Audio is unavailable in Jest — replace with a simple trigger button.
+
 const mockOnChange = jest.fn<void, [RecordingValue | null]>();
 
 jest.mock("@/components/recorder/AudioRecorder", () => ({
-  AudioRecorder: ({ onChange }: { onChange: (v: RecordingValue | null) => void }) => {
+  AudioRecorder: ({
+    onChange,
+  }: {
+    onChange: (v: RecordingValue | null) => void;
+    hideReRecord?: boolean;
+  }) => {
     mockOnChange.mockImplementation(onChange);
     return (
       <button
@@ -40,41 +45,42 @@ function simulateRecording() {
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("RecitationStep", () => {
-  beforeEach(() => {
-    mockOnChange.mockClear();
-  });
+  beforeEach(() => mockOnChange.mockClear());
 
-  it("renders the correct prompt for step 2 (Panch-tattva)", () => {
+  it("renders the heading for step 2 (Panch-tattva)", () => {
     render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
     expect(screen.getByText(/panch-tattva invocation/i)).toBeInTheDocument();
+  });
+
+  it("renders Devanagari mantra lines for step 2", () => {
+    render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
     expect(
-      screen.getByText(/please recite the panch-tattva mantra/i),
+      screen.getByText(/जय श्री कृष्ण चैतन्य प्रभु नित्यानन्द/),
     ).toBeInTheDocument();
   });
 
-  it("renders the correct prompt for step 3 (Maha-mantra)", () => {
+  it("renders the heading for step 3 (Maha-mantra)", () => {
     render(<RecitationStep step={3} onClipReady={makeOnClipReady()} />);
     expect(screen.getAllByText(/hare krishna maha-mantra/i).length).toBeGreaterThan(0);
+  });
+
+  it("renders Devanagari mantra lines for step 3", () => {
+    render(<RecitationStep step={3} onClipReady={makeOnClipReady()} />);
     expect(
-      screen.getByText(/please chant one full round/i),
+      screen.getByText(/हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे/),
     ).toBeInTheDocument();
   });
 
-  it("renders the correct prompt for step 4 (Full round)", () => {
+  it("renders the heading for step 4 (Full round)", () => {
     render(<RecitationStep step={4} onClipReady={makeOnClipReady()} />);
     expect(screen.getByText(/full round/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/panch-tattva invocation followed by one complete round/i),
-    ).toBeInTheDocument();
   });
 
-  it("'Save recording' calls onClipReady with panch_tattva_recitation for step 2", () => {
+  it("auto-calls onClipReady with panch_tattva_recitation when recording completes (step 2)", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={2} onClipReady={onClipReady} />);
 
     simulateRecording();
-    const saveBtn = screen.getByRole("button", { name: /save recording/i });
-    fireEvent.click(saveBtn);
 
     expect(onClipReady).toHaveBeenCalledTimes(1);
     const [clipId, blob, mimeType, meta] = onClipReady.mock.calls[0] as [
@@ -91,59 +97,50 @@ describe("RecitationStep", () => {
     expect(meta.durationMs).toBe(5000);
   });
 
-  it("'Save recording' calls onClipReady with mahamantra_round for step 3", () => {
+  it("auto-calls onClipReady with mahamantra_round for step 3", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={3} onClipReady={onClipReady} />);
-
     simulateRecording();
-    fireEvent.click(screen.getByRole("button", { name: /save recording/i }));
-
-    expect(onClipReady).toHaveBeenCalledTimes(1);
     const [, , , meta] = onClipReady.mock.calls[0] as [string, Blob, string, ClipMeta];
     expect(meta.step).toBe("mahamantra_round");
   });
 
-  it("'Save recording' calls onClipReady with panch_tattva_mahamantra_round for step 4", () => {
+  it("auto-calls onClipReady with panch_tattva_mahamantra_round for step 4", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={4} onClipReady={onClipReady} />);
-
     simulateRecording();
-    fireEvent.click(screen.getByRole("button", { name: /save recording/i }));
-
-    expect(onClipReady).toHaveBeenCalledTimes(1);
     const [, , , meta] = onClipReady.mock.calls[0] as [string, Blob, string, ClipMeta];
     expect(meta.step).toBe("panch_tattva_mahamantra_round");
   });
 
-  it("'Re-record' clears pending without calling onClipReady", () => {
+  it("shows Re-record button after a recording completes", () => {
+    render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
+    expect(screen.queryByRole("button", { name: /re-record/i })).not.toBeInTheDocument();
+    simulateRecording();
+    expect(screen.getByRole("button", { name: /re-record/i })).toBeInTheDocument();
+  });
+
+  it("Re-record hides the button and does not call onClipReady a second time", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={2} onClipReady={onClipReady} />);
 
     simulateRecording();
-    expect(screen.getByRole("button", { name: /save recording/i })).toBeInTheDocument();
+    expect(onClipReady).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: /re-record/i }));
 
-    expect(onClipReady).not.toHaveBeenCalled();
-    expect(screen.queryByRole("button", { name: /save recording/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /re-record/i })).not.toBeInTheDocument();
+    expect(onClipReady).toHaveBeenCalledTimes(1);
   });
 
-  it("after 'Save recording', recorder resets and a new recording can be captured", () => {
+  it("a second recording after Re-record enqueues a second clip", () => {
     const onClipReady = makeOnClipReady();
     render(<RecitationStep step={2} onClipReady={onClipReady} />);
 
-    // First recording
     simulateRecording();
-    fireEvent.click(screen.getByRole("button", { name: /save recording/i }));
-    expect(onClipReady).toHaveBeenCalledTimes(1);
-
-    // Action buttons should be gone
-    expect(screen.queryByRole("button", { name: /save recording/i })).not.toBeInTheDocument();
-
-    // Second recording — recorder has remounted so mock-recorder is available again
+    fireEvent.click(screen.getByRole("button", { name: /re-record/i }));
     simulateRecording();
-    fireEvent.click(screen.getByRole("button", { name: /save recording/i }));
+
     expect(onClipReady).toHaveBeenCalledTimes(2);
   });
 });
