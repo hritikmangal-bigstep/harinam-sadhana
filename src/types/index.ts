@@ -39,3 +39,61 @@ export interface StoredOffering extends DevoteeSubmission {
 export interface PresignError {
   error: string;
 }
+
+import type { RecordingStep } from "@/lib/steps";
+
+/** Body sent to POST /api/upload to obtain presigned URLs for a KWS clip. */
+export interface KwsPresignRequest {
+  step: RecordingStep;
+  contentType: AudioMimeType;
+  contributorId: string;
+  clipId: string;
+  label?: string;
+}
+
+/** Response from POST /api/upload for a KWS clip. */
+export interface KwsPresignResponse {
+  audioUrl: string;
+  audioKey: string;
+  audioStorageUrl: string;
+}
+
+/** Body for POST /api/recordings — one clip's metadata. */
+export interface RecordingPayload {
+  // Identification
+  clipId: string;
+  sessionId: string;
+  contributorId: string;
+
+  // Recording
+  step: RecordingStep;
+  label?: string;
+  s3Key: string;
+  mimeType: string;
+
+  // Technical metadata (optional — computed by client)
+  durationMs?: number;
+  sampleRate?: number;
+  fileSizeBytes?: number;
+
+  // Quality metrics (optional — added by U8)
+  peakDbfs?: number;
+  rmsDbfs?: number;
+  clipping?: boolean;
+  silenceRatio?: number;
+  snrEstimate?: number;
+  lowQuality?: boolean;
+
+  // Demographics / session context (optional — from U9)
+  contributor?: {
+    language?: string;
+    nativeLanguage?: string;
+    ageGroup?: string;
+    gender?: string;
+    region?: string;
+  };
+  session?: {
+    environment?: string;
+    chantingSpeed?: string;
+  };
+}
