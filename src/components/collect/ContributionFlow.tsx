@@ -2,7 +2,34 @@
 
 import { useState } from "react";
 import { getContributorId } from "@/lib/contributor-id";
+import { saveAndEnqueue, drainStep } from "@/lib/autosave/upload-queue";
+import type { ClipRecord } from "@/lib/autosave/store";
+import type { RecordingStep } from "@/lib/steps";
 import { StepIndicator } from "./StepIndicator";
+
+export interface ClipMeta {
+  step: RecordingStep;
+  label?: string;
+  durationMs?: number;
+}
+
+export type OnClipReady = (
+  clipId: string,
+  blob: Blob,
+  mimeType: string,
+  meta: ClipMeta,
+) => void;
+
+function generateUUID(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 interface StepMeta {
   title: string;
@@ -43,6 +70,31 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   const [contributorId] = useState(() => getContributorId());
   const [isSaving, setIsSaving] = useState(false);
 
+  const [sessionId] = useState<string>(() => {
+    if (typeof localStorage === "undefined") return generateUUID();
+    const stored = localStorage.getItem("kws_session_id");
+    if (stored) return stored;
+    const id = generateUUID();
+    localStorage.setItem("kws_session_id", id);
+    return id;
+  });
+
+  const handleClipReady: OnClipReady = (clipId, blob, mimeType, meta) => {
+    const record: ClipRecord = {
+      clipId,
+      sessionId,
+      contributorId,
+      step: meta.step,
+      label: meta.label,
+      blob,
+      mimeType,
+      durationMs: meta.durationMs,
+      status: "queued",
+      createdAt: Date.now(),
+    };
+    void saveAndEnqueue(record);
+  };
+
   const advance = (completed: boolean) => {
     if (completed) {
       setCompletedSteps((prev) => new Set(prev).add(currentStep));
@@ -55,13 +107,12 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
   };
 
   const handleSaveAndContinue = async () => {
-    if (onStepComplete) {
-      setIsSaving(true);
-      try {
-        await onStepComplete(currentStep);
-      } finally {
-        setIsSaving(false);
-      }
+    setIsSaving(true);
+    try {
+      await drainStep(currentStep);
+      if (onStepComplete) await onStepComplete(currentStep);
+    } finally {
+      setIsSaving(false);
     }
     advance(true);
   };
