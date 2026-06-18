@@ -125,6 +125,8 @@ export async function createPresignedUploadUrls(
   return { audioUrl, metadataUrl, audioKey, audioStorageUrl };
 }
 
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+
 /**
  * Build the S3 key for a KWS clip.
  * - isolated_keyword  → kws-collection/clips/{label}/{contributorId}__{clipId}.{ext}
@@ -137,6 +139,8 @@ export function buildKwsKey(
   contentType: AudioMimeType,
   label?: string,
 ): string {
+  if (!SAFE_ID_RE.test(contributorId)) throw new Error("Invalid contributorId");
+  if (!SAFE_ID_RE.test(clipId)) throw new Error("Invalid clipId");
   const ext = extensionFor(contentType);
   if (step === "isolated_keyword") {
     if (!label) throw new Error("label is required for isolated_keyword step");

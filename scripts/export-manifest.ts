@@ -99,14 +99,14 @@ const rows: ManifestRow[] = [];
 
 (async () => {
   while (true) {
-    const query = supabase
+    let query = supabase
       .from("recordings")
       .select(SELECT_COLUMNS)
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
       .order("recorded_at", { ascending: true });
 
-    if (stepFilter) query.eq("step", stepFilter);
-    if (cleanOnly) query.eq("low_quality", false);
+    if (stepFilter) query = query.eq("step", stepFilter);
+    if (cleanOnly) query = query.eq("low_quality", false);
 
     const { data, error } = await query;
 

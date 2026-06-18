@@ -33,15 +33,15 @@ export async function appendSubmissionRow(row: SheetRow): Promise<void> {
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
     range: "Sheet1!A:F",
-    valueInputOption: "USER_ENTERED",
+    valueInputOption: "RAW",
     requestBody: {
       values: [[
         row.timestamp,
         row.name,
         row.email,
-        `=HYPERLINK("${row.audioS3Path}","Listen")`,
-        row.durationSeconds,
         row.notes,
+        row.durationSeconds,
+        row.audioS3Path,
       ]],
     },
   });

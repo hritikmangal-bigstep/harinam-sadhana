@@ -72,7 +72,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     // 1. Fetch the audio from S3 via a short-lived presigned GET URL.
     const getUrl = await createPresignedGetUrl(s3Key, ASR_GET_EXPIRY_SECONDS);
-    const audioResponse = await fetch(getUrl);
+    const audioResponse = await fetch(getUrl, { signal: AbortSignal.timeout(30_000) });
     if (!audioResponse.ok) {
       return NextResponse.json({}, { status: 200 });
     }
@@ -85,6 +85,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ audio_b64: audiob64, sample_rate: 16000 }),
+      signal: AbortSignal.timeout(60_000),
     });
 
     if (!asrResponse.ok) {

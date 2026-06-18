@@ -1,3 +1,5 @@
+import 'server-only';
+
 // Overwritten by Amplify preBuild with real values — never commit real credentials here.
 // Local dev: process.env from .env.local takes precedence over these placeholders.
 export const buildEnv = {

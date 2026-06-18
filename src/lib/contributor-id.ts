@@ -1,16 +1,6 @@
-const STORAGE_KEY = "kws_contributor_id";
+import { generateUUID } from "@/lib/uuid";
 
-function generateUUID(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  // Fallback UUID v4 implementation
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+const STORAGE_KEY = "kws_contributor_id";
 
 export function getContributorId(): string {
   if (typeof window === "undefined") return "";

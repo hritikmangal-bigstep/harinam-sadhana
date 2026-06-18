@@ -27,6 +27,7 @@ export type { ClipRecord };
 
 const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "").replace(/\/$/, "");
 const MAX_CONCURRENCY = 2;
+const MAX_UPLOAD_ATTEMPTS = 10;
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
 
@@ -61,17 +62,7 @@ function backoffMs(attempt: number): number {
 function notifyDrainIfDone(stepNumber: number): void {
   const stepEnum = STEP_TO_RECORDING_STEP[stepNumber as 1 | 2 | 3 | 4];
   if (!stepEnum) return;
-  const hasPending =
-    queue.some((c) => c.step === stepEnum) ||
-    [...inFlight].some((id) => {
-      // Check via the persisted set — if not persisted, it's still in flight
-      // We track in-flight by inFlight set, so if step matches any in-flight clipId
-      // we need to look it up. We'll track step per clipId instead.
-      void id; // suppress unused warning
-      return false;
-    });
-
-  // Simpler: check inFlightByStep
+  const hasPending = queue.some((c) => c.step === stepEnum);
   const inFlightForStep = [...inFlight].filter((id) => inFlightStepMap.get(id) === stepEnum);
 
   if (!hasPending && inFlightForStep.length === 0) {
@@ -105,19 +96,21 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
       clipId: clip.clipId,
       label: clip.label,
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!presignRes.ok) {
     throw new Error(`Presign failed (${presignRes.status})`);
   }
 
-  const { audioUrl } = (await presignRes.json()) as { audioUrl: string };
+  const { audioUrl, audioKey } = (await presignRes.json()) as { audioUrl: string; audioKey: string };
 
   // Step 2 — PUT blob to S3
   const putRes = await fetch(audioUrl, {
     method: "PUT",
     headers: { "Content-Type": clip.mimeType },
     body: clip.blob,
+    signal: AbortSignal.timeout(120_000),
   });
 
   if (!putRes.ok) {
@@ -134,9 +127,11 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
       contributorId: clip.contributorId,
       step: clip.step,
       label: clip.label,
+      s3Key: audioKey,
       mimeType: clip.mimeType,
       durationMs: clip.durationMs,
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!recordingsRes.ok) {
@@ -149,10 +144,14 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
   await deleteClip(clip.clipId);
 }
 
-/** Process one clip with exponential backoff retry. */
+/** Process one clip with exponential backoff retry, capped at MAX_UPLOAD_ATTEMPTS. */
 async function processWithRetry(clip: ClipRecord): Promise<void> {
   let attempt = 0;
   while (!persisted.has(clip.clipId)) {
+    if (attempt >= MAX_UPLOAD_ATTEMPTS) {
+      await deleteClip(clip.clipId);
+      return;
+    }
     try {
       await uploadClip(clip);
       return;
@@ -201,9 +200,10 @@ function pumpQueue(): void {
 // ── Online event listener ──────────────────────────────────────────────────
 
 if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    pumpQueue();
-  });
+  const w = window as typeof window & { __kwsPumpOnline?: () => void };
+  if (w.__kwsPumpOnline) window.removeEventListener("online", w.__kwsPumpOnline);
+  w.__kwsPumpOnline = pumpQueue;
+  window.addEventListener("online", pumpQueue);
 }
 
 // ── Rehydration on startup ──────────────────────────────────────────────────
@@ -235,6 +235,14 @@ export async function saveAndEnqueue(clip: ClipRecord): Promise<void> {
     }
   }
   pumpQueue();
+}
+
+/**
+ * Cancel any pending drainStep waiters for a step.
+ * Call after a drain timeout so abandoned resolve callbacks don't accumulate.
+ */
+export function cancelDrain(stepNumber: 1 | 2 | 3 | 4): void {
+  drainWaiters.delete(stepNumber);
 }
 
 /**

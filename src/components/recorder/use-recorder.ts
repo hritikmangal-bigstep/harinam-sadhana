@@ -70,6 +70,7 @@ export function useRecorder() {
   const startTimeRef = useRef<number>(0);
   const cancelledRef = useRef<boolean>(false);
   const audioUrlRef = useRef<string | null>(null);
+  const metricsGenRef = useRef(0);
 
   /** Stop and fully release the mic stream + audio graph (no lingering mic). */
   const releaseStream = useCallback(() => {
@@ -155,9 +156,9 @@ export function useRecorder() {
           mimeType,
           metrics: null,
         }));
-        // Compute quality metrics asynchronously; update state when ready.
+        const gen = ++metricsGenRef.current;
         void decodeBlob(blob).then((buffer) => {
-          if (buffer) {
+          if (buffer && metricsGenRef.current === gen) {
             setState((s) => ({ ...s, metrics: computeQualityMetrics(buffer) }));
           }
         });
@@ -217,6 +218,7 @@ export function useRecorder() {
   }, [stop]);
 
   const reset = useCallback(() => {
+    metricsGenRef.current++;
     if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     audioUrlRef.current = null;
     setState({
@@ -243,6 +245,7 @@ export function useRecorder() {
   // Release mic + revoke object URLs on unmount (mic must not stay live).
   useEffect(() => {
     return () => {
+      metricsGenRef.current++;
       releaseStream();
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     };

@@ -21,35 +21,6 @@ function isFiniteNumberOrUndefined(val: unknown): val is number | undefined {
   return typeof val === "number" && isFinite(val);
 }
 
-function parseUserAgent(ua: string): {
-  deviceType: string;
-  browser: string;
-  os: string;
-} {
-  let deviceType = "desktop";
-  if (/Mobile|Android.*Mobile|iPhone|iPod/.test(ua)) {
-    deviceType = "mobile";
-  } else if (/iPad|Android(?!.*Mobile)|Tablet/.test(ua)) {
-    deviceType = "tablet";
-  }
-
-  let browser = "unknown";
-  if (/Edg\//.test(ua)) browser = "Edge";
-  else if (/OPR\/|Opera/.test(ua)) browser = "Opera";
-  else if (/Chrome\//.test(ua)) browser = "Chrome";
-  else if (/Firefox\//.test(ua)) browser = "Firefox";
-  else if (/Safari\//.test(ua)) browser = "Safari";
-
-  let os = "unknown";
-  if (/Windows/.test(ua)) os = "Windows";
-  else if (/Android/.test(ua)) os = "Android";
-  else if (/iPhone|iPad|iPod/.test(ua)) os = "iOS";
-  else if (/Mac OS X/.test(ua)) os = "macOS";
-  else if (/Linux/.test(ua)) os = "Linux";
-
-  return { deviceType, browser, os };
-}
-
 type ValidationResult =
   | { payload: RecordingPayload; error: null }
   | { payload: null; error: string };
@@ -252,9 +223,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         label: payload.label,
         s3Key: payload.s3Key,
       }),
-    });
+    }).catch(() => {});
   }
 
-  const id = (recordingData as { id: number } | null)?.id ?? 0;
+  const id = (recordingData as { id: number } | null)?.id ?? null;
   return NextResponse.json({ id, clipId: payload.clipId }, { status: 201 });
 }

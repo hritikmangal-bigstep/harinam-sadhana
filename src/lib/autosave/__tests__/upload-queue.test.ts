@@ -84,6 +84,19 @@ function buildHappyFetch(clipId: string) {
 let originalFetch: typeof global.fetch;
 
 beforeAll(() => {
+  // jsdom 20.0.3 does not implement AbortSignal.timeout; polyfill so upload-queue
+  // fetch calls don't throw before reaching the mock response.
+  if (typeof AbortSignal.timeout !== "function") {
+    Object.defineProperty(AbortSignal, "timeout", {
+      value: (ms: number) => {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), ms);
+        return ctrl.signal;
+      },
+      writable: true,
+      configurable: true,
+    });
+  }
   originalFetch = global.fetch;
 });
 

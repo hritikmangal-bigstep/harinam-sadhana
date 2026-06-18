@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const key = searchParams.get("key");
 
-  if (!key || !key.startsWith("submissions/")) {
+  if (!key || (!key.startsWith("submissions/") && !key.startsWith("kws-collection/"))) {
     return NextResponse.json({ error: "Invalid key." }, { status: 400 });
   }
 
