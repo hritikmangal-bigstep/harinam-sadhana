@@ -8,4 +8,6 @@ export const buildEnv = {
   GOOGLE_SERVICE_ACCOUNT_EMAIL: '',
   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: '',
   GOOGLE_SHEETS_ID: '',
+  SUPABASE_URL: '',
+  SUPABASE_SERVICE_ROLE_KEY: '',
 } as const;

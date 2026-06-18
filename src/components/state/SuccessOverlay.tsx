@@ -33,30 +33,24 @@ export function SuccessOverlay({
         Your chanting session has been offered successfully.
       </span>
 
-      <svg width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
-        <g style={{ transformOrigin: "80px 110px" }}>
-          {PETALS.map((angle, i) => (
-            <motion.ellipse
-              key={angle}
-              cx="80"
-              cy="70"
-              rx="14"
-              ry="38"
-              fill="var(--color-secondary)"
-              opacity={0.85}
-              transform={`rotate(${angle} 80 110)`}
-              initial={reduce ? { scaleY: 1, opacity: 0.85 } : { scaleY: 0.1, opacity: 0 }}
-              animate={{ scaleY: 1, opacity: 0.85 }}
-              transition={{
-                duration: 0.8,
-                delay: reduce ? 0 : i * 0.1,
-                ease: [0.34, 1.56, 0.64, 1],
-              }}
-              style={{ transformOrigin: "80px 110px" }}
-            />
-          ))}
-          <circle cx="80" cy="110" r="12" fill="var(--color-primary)" />
-        </g>
+      <svg width="160" height="200" viewBox="0 0 160 200" aria-hidden="true">
+        {PETALS.map((angle, i) => (
+          <motion.ellipse
+            key={angle}
+            cx="80"
+            rx="14"
+            fill="var(--color-secondary)"
+            transform={`rotate(${angle} 80 110)`}
+            initial={reduce ? { cy: 70, ry: 38, opacity: 0.85 } : { cy: 108, ry: 2, opacity: 0 }}
+            animate={{ cy: 70, ry: 38, opacity: 0.85 }}
+            transition={{
+              duration: 0.9,
+              delay: reduce ? 0 : i * 0.1,
+              ease: [0.34, 1.56, 0.64, 1],
+            }}
+          />
+        ))}
+        <circle cx="80" cy="110" r="12" fill="var(--color-primary)" />
       </svg>
 
       <motion.h2

@@ -1,4 +1,4 @@
-import { SubmissionForm } from "@/components/form/SubmissionForm";
+import { ContributionFlow } from "@/components/collect/ContributionFlow";
 import { TulsiLeafField } from "@/components/decor/TulsiLeafField";
 
 function todayLabel(): string {
@@ -57,9 +57,7 @@ export function FormSection() {
         takes ~8 min. 🙏
       </div>
 
-      <div className="card shadow-md border-[rgba(124,58,237,0.25)]">
-        <SubmissionForm />
-      </div>
+      <ContributionFlow />
     </section>
   );
 }
