@@ -76,11 +76,6 @@ describe("POST /api/recordings", () => {
     const json = await res.json();
     expect(json).toMatchObject({ id: 42, clipId: "clip-uuid-001" });
     expect(mockUpsert).toHaveBeenCalledWith(
-      "contributors",
-      expect.objectContaining({ id: "contributor-uuid-001" }),
-      expect.any(Object)
-    );
-    expect(mockUpsert).toHaveBeenCalledWith(
       "collection_sessions",
       expect.objectContaining({ id: "session-uuid-001" }),
       expect.any(Object)
@@ -150,7 +145,7 @@ describe("POST /api/recordings", () => {
     expect(json.error).toMatch(/mimeType/);
   });
 
-  test("8. Supabase error on contributor upsert → 500 with safe message", async () => {
+  test("8. Supabase error on session upsert → 500 with safe message", async () => {
     mockUpsert.mockImplementationOnce(() => ({
       data: null,
       error: { message: "DB error" },
@@ -158,7 +153,7 @@ describe("POST /api/recordings", () => {
     const res = await POST(makeRequest(basePayload));
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe("Failed to persist contributor");
+    expect(json.error).toBe("Failed to persist session");
   });
 
   test("9. recorded_at in recordings upsert is server-derived ISO string", async () => {
