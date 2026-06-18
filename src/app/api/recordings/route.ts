@@ -165,7 +165,6 @@ function validatePayload(body: unknown): ValidationResult {
     silenceRatio: b["silenceRatio"] as number | undefined,
     snrEstimate: b["snrEstimate"] as number | undefined,
     lowQuality: b["lowQuality"] as boolean | undefined,
-    contributor: b["contributor"] as RecordingPayload["contributor"],
     session: b["session"] as RecordingPayload["session"],
   };
 
@@ -187,34 +186,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const payload = validation.payload;
   const recordedAt = new Date().toISOString();
-  const userAgent = request.headers.get("user-agent") ?? "";
-  const { deviceType, browser, os } = parseUserAgent(userAgent);
 
   const supabase = getSupabaseClient();
-
-  const { error: contributorError } = await supabase
-    .from("contributors")
-    .upsert(
-      {
-        id: payload.contributorId,
-        language: payload.contributor?.language ?? null,
-        native_language: payload.contributor?.nativeLanguage ?? null,
-        age_group: payload.contributor?.ageGroup ?? null,
-        gender: payload.contributor?.gender ?? null,
-        region: payload.contributor?.region ?? null,
-        device_type: deviceType,
-        browser,
-        os,
-      },
-      { onConflict: "id" }
-    );
-
-  if (contributorError) {
-    return NextResponse.json(
-      { error: "Failed to persist contributor" },
-      { status: 500 }
-    );
-  }
 
   const { error: sessionError } = await supabase
     .from("collection_sessions")

@@ -91,14 +91,6 @@ export interface RecordingPayload {
   snrEstimate?: number;
   lowQuality?: boolean;
 
-  // Demographics / session context (optional — from U9)
-  contributor?: {
-    language?: string;
-    nativeLanguage?: string;
-    ageGroup?: string;
-    gender?: string;
-    region?: string;
-  };
   session?: {
     environment?: string;
     chantingSpeed?: string;
