@@ -135,7 +135,8 @@ export function ContributionFlow({ onStepComplete }: ContributionFlowProps) {
           body: JSON.stringify({
             contributorId,
             sessionId,
-            completedSteps: Array.from(completedSteps),
+            name,
+            email,
             timestamp: new Date().toISOString(),
           }),
         });
