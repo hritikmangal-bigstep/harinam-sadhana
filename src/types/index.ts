@@ -64,3 +64,43 @@ export interface KwsPresignResponse {
   /** Permanent HTTPS URL for the audio object. */
   audioStorageUrl: string;
 }
+
+/** Body for POST /api/recordings — one clip's metadata. */
+export interface RecordingPayload {
+  // Identification
+  clipId: string;
+  sessionId: string;
+  contributorId: string;
+
+  // Recording
+  step: RecordingStep;
+  label?: string;
+  s3Key: string;
+  mimeType: string;
+
+  // Technical metadata (optional — computed by client)
+  durationMs?: number;
+  sampleRate?: number;
+  fileSizeBytes?: number;
+
+  // Quality metrics (optional — added by U8)
+  peakDbfs?: number;
+  rmsDbfs?: number;
+  clipping?: boolean;
+  silenceRatio?: number;
+  snrEstimate?: number;
+  lowQuality?: boolean;
+
+  // Demographics / session context (optional — from U9)
+  contributor?: {
+    language?: string;
+    nativeLanguage?: string;
+    ageGroup?: string;
+    gender?: string;
+    region?: string;
+  };
+  session?: {
+    environment?: string;
+    chantingSpeed?: string;
+  };
+}
