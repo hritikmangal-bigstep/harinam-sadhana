@@ -1,4 +1,4 @@
-import { slugify, buildKeys, isAcceptedAudioType } from "@/lib/s3";
+import { slugify, buildKeys, buildKwsKey, isAcceptedAudioType } from "@/lib/s3";
 
 describe("s3 helpers", () => {
   describe("slugify", () => {
@@ -42,6 +42,76 @@ describe("s3 helpers", () => {
     it("uses m4a for mp4 recordings", () => {
       const { audioKey } = buildKeys("A", "2026-06-16", "audio/mp4");
       expect(audioKey).toMatch(/\.m4a$/);
+    });
+    it("always produces a submissions/... prefix (legacy path regression)", () => {
+      const { audioKey } = buildKeys("Dev", "2026-06-18", "audio/webm");
+      expect(audioKey.startsWith("submissions/")).toBe(true);
+    });
+  });
+
+  describe("buildKwsKey", () => {
+    it("isolated_keyword with label produces clips path", () => {
+      const key = buildKwsKey(
+        "isolated_keyword",
+        "contrib",
+        "clipid",
+        "audio/webm",
+        "hare",
+      );
+      expect(key).toBe("kws-collection/clips/hare/contrib__clipid.webm");
+    });
+
+    it("panch_tattva_recitation produces panch-tattva recitations path", () => {
+      const key = buildKwsKey(
+        "panch_tattva_recitation",
+        "contrib",
+        "clipid",
+        "audio/webm",
+      );
+      expect(key).toBe(
+        "kws-collection/recitations/panch-tattva/contrib/clipid.webm",
+      );
+    });
+
+    it("mahamantra_round produces mahamantra recitations path", () => {
+      const key = buildKwsKey(
+        "mahamantra_round",
+        "contrib",
+        "clipid",
+        "audio/webm",
+      );
+      expect(key).toBe(
+        "kws-collection/recitations/mahamantra/contrib/clipid.webm",
+      );
+    });
+
+    it("panch_tattva_mahamantra_round produces panch-tattva-mahamantra path", () => {
+      const key = buildKwsKey(
+        "panch_tattva_mahamantra_round",
+        "contrib",
+        "clipid",
+        "audio/webm",
+      );
+      expect(key).toBe(
+        "kws-collection/recitations/panch-tattva-mahamantra/contrib/clipid.webm",
+      );
+    });
+
+    it("isolated_keyword without label throws an error", () => {
+      expect(() =>
+        buildKwsKey("isolated_keyword", "contrib", "clipid", "audio/webm"),
+      ).toThrow("label is required for isolated_keyword step");
+    });
+
+    it("uses m4a extension for mp4 content type", () => {
+      const key = buildKwsKey(
+        "isolated_keyword",
+        "contrib",
+        "clipid",
+        "audio/mp4",
+        "krishna",
+      );
+      expect(key).toMatch(/\.m4a$/);
     });
   });
 });

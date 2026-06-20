@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { buildEnv } from "./build-env";
 
 export interface SheetRow {
   timestamp: string;
@@ -10,9 +11,9 @@ export interface SheetRow {
 }
 
 export async function appendSubmissionRow(row: SheetRow): Promise<void> {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const sheetId = process.env.GOOGLE_SHEETS_ID;
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || buildEnv.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || buildEnv.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)?.replace(/\\n/g, "\n");
+  const sheetId = process.env.GOOGLE_SHEETS_ID || buildEnv.GOOGLE_SHEETS_ID;
 
   if (!email || !privateKey || !sheetId) {
     // Sheets not configured — skip silently in dev, warn in prod.
@@ -38,9 +39,9 @@ export async function appendSubmissionRow(row: SheetRow): Promise<void> {
         row.timestamp,
         row.name,
         row.email,
-        row.audioS3Path,
-        row.durationSeconds,
         row.notes,
+        row.durationSeconds,
+        row.audioS3Path,
       ]],
     },
   });

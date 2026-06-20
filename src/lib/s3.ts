@@ -1,6 +1,8 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { AudioMimeType } from "@/types";
+import { buildEnv } from "./build-env";
+import { RECITATION_STEP_PREFIXES, type RecordingStep } from "./steps";
 
 /** Presigned upload URLs expire after 8 minutes. */
 const PRESIGN_EXPIRY_SECONDS = 8 * 60;
@@ -15,14 +17,14 @@ export function isAcceptedAudioType(value: string): value is AudioMimeType {
 }
 
 /**
- * Reads S3 config from environment only — never hardcode bucket/region/keys.
- * Throws if misconfigured so the API route can fail fast with a clear message.
+ * process.env takes precedence (local dev via .env.local).
+ * buildEnv is the compile-time fallback baked in during Amplify preBuild.
  */
 function getS3Config() {
-  const region = process.env.S3_REGION;
-  const bucket = process.env.S3_BUCKET;
-  const accessKeyId = process.env.S3_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+  const region = process.env.S3_REGION || buildEnv.S3_REGION;
+  const bucket = process.env.S3_BUCKET || buildEnv.S3_BUCKET;
+  const accessKeyId = process.env.S3_ACCESS_KEY_ID || buildEnv.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || buildEnv.S3_SECRET_ACCESS_KEY;
 
   if (!region || !bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
@@ -40,6 +42,10 @@ function getClient(region: string, accessKeyId: string, secretAccessKey: string)
     cachedClient = new S3Client({
       region,
       credentials: { accessKeyId, secretAccessKey },
+      // Only compute checksums when S3 requires them — prevents a CRC32
+      // placeholder being embedded in presigned URLs that mismatches the
+      // actual payload uploaded by the browser.
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
   }
   return cachedClient;
@@ -78,6 +84,14 @@ export function buildKeys(
   };
 }
 
+/** Generate a presigned GET URL so a private S3 object can be streamed. */
+export async function createPresignedGetUrl(key: string, expiresIn = 3600): Promise<string> {
+  const { region, bucket, accessKeyId, secretAccessKey } = getS3Config();
+  const client = getClient(region, accessKeyId, secretAccessKey);
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return getSignedUrl(client, command, { expiresIn });
+}
+
 /** Generate a single presigned PUT URL for an object. */
 async function presignPut(key: string, contentType: string): Promise<string> {
   const { region, bucket, accessKeyId, secretAccessKey } = getS3Config();
@@ -87,6 +101,8 @@ async function presignPut(key: string, contentType: string): Promise<string> {
     Key: key,
     ContentType: contentType,
   });
+  // Disable SDK auto-checksum so the presigned URL doesn't embed a CRC32
+  // placeholder that mismatches the real payload the browser uploads.
   return getSignedUrl(client, command, { expiresIn: PRESIGN_EXPIRY_SECONDS });
 }
 
@@ -98,11 +114,55 @@ export async function createPresignedUploadUrls(
   date: string,
   contentType: AudioMimeType,
   stamp: number = Date.now(),
-): Promise<{ audioUrl: string; metadataUrl: string; audioKey: string }> {
+): Promise<{ audioUrl: string; metadataUrl: string; audioKey: string; audioStorageUrl: string }> {
   const { audioKey, metadataKey } = buildKeys(name, date, contentType, stamp);
+  const { region, bucket } = getS3Config();
   const [audioUrl, metadataUrl] = await Promise.all([
     presignPut(audioKey, contentType),
     presignPut(metadataKey, "application/json"),
   ]);
-  return { audioUrl, metadataUrl, audioKey };
+  const audioStorageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${audioKey}`;
+  return { audioUrl, metadataUrl, audioKey, audioStorageUrl };
+}
+
+const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
+
+/**
+ * Build the S3 key for a KWS clip.
+ * - isolated_keyword  → kws-collection/clips/{label}/{contributorId}__{clipId}.{ext}
+ * - recitation steps  → kws-collection/recitations/{prefix}/{contributorId}/{clipId}.{ext}
+ */
+export function buildKwsKey(
+  step: RecordingStep,
+  contributorId: string,
+  clipId: string,
+  contentType: AudioMimeType,
+  label?: string,
+): string {
+  if (!SAFE_ID_RE.test(contributorId)) throw new Error("Invalid contributorId");
+  if (!SAFE_ID_RE.test(clipId)) throw new Error("Invalid clipId");
+  const ext = extensionFor(contentType);
+  if (step === "isolated_keyword") {
+    if (!label) throw new Error("label is required for isolated_keyword step");
+    return `kws-collection/clips/${label}/${contributorId}__${clipId}.${ext}`;
+  }
+  const prefix = RECITATION_STEP_PREFIXES[step];
+  return `kws-collection/recitations/${prefix}/${contributorId}/${clipId}.${ext}`;
+}
+
+/**
+ * Presign a PUT URL for a KWS clip (no sidecar — Supabase is the metadata store).
+ */
+export async function createKwsPresignedUploadUrl(
+  step: RecordingStep,
+  contributorId: string,
+  clipId: string,
+  contentType: AudioMimeType,
+  label?: string,
+): Promise<{ audioUrl: string; audioKey: string; audioStorageUrl: string }> {
+  const { region, bucket } = getS3Config();
+  const audioKey = buildKwsKey(step, contributorId, clipId, contentType, label);
+  const audioUrl = await presignPut(audioKey, contentType);
+  const audioStorageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${audioKey}`;
+  return { audioUrl, audioKey, audioStorageUrl };
 }

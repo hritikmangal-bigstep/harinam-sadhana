@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AudioMimeType } from "@/types";
+import {
+  computeQualityMetrics,
+  decodeBlob,
+  type QualityMetrics,
+} from "@/lib/quality-metrics";
 
 export type RecorderStatus =
   | "idle"
@@ -28,6 +33,8 @@ interface RecorderState {
   /** True briefly when a release happened under MIN_DURATION_SECONDS. */
   tooShort: boolean;
   error: string | null;
+  /** Quality metrics computed asynchronously after a recording is finalised. Null until available. */
+  metrics: QualityMetrics | null;
 }
 
 /** Pick the best-supported recording MIME: webm/opus, else mp4 fallback. */
@@ -50,6 +57,7 @@ export function useRecorder() {
     mimeType: null,
     tooShort: false,
     error: null,
+    metrics: null,
   });
 
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -62,6 +70,7 @@ export function useRecorder() {
   const startTimeRef = useRef<number>(0);
   const cancelledRef = useRef<boolean>(false);
   const audioUrlRef = useRef<string | null>(null);
+  const metricsGenRef = useRef(0);
 
   /** Stop and fully release the mic stream + audio graph (no lingering mic). */
   const releaseStream = useCallback(() => {
@@ -145,7 +154,14 @@ export function useRecorder() {
           audioBlob: blob,
           audioUrl: url,
           mimeType,
+          metrics: null,
         }));
+        const gen = ++metricsGenRef.current;
+        void decodeBlob(blob).then((buffer) => {
+          if (buffer && metricsGenRef.current === gen) {
+            setState((s) => ({ ...s, metrics: computeQualityMetrics(buffer) }));
+          }
+        });
       };
 
       // Live amplitude graph for the petal waveform.
@@ -202,6 +218,7 @@ export function useRecorder() {
   }, [stop]);
 
   const reset = useCallback(() => {
+    metricsGenRef.current++;
     if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     audioUrlRef.current = null;
     setState({
@@ -213,6 +230,7 @@ export function useRecorder() {
       mimeType: null,
       tooShort: false,
       error: null,
+      metrics: null,
     });
   }, []);
 
@@ -227,6 +245,7 @@ export function useRecorder() {
   // Release mic + revoke object URLs on unmount (mic must not stay live).
   useEffect(() => {
     return () => {
+      metricsGenRef.current++;
       releaseStream();
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
     };

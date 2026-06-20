@@ -27,6 +27,7 @@ export function SubmissionForm() {
   const [progress, setProgress] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [offered, setOffered] = useState(false);
+  const [recorderKey, setRecorderKey] = useState(0);
 
   const set = (key: keyof Values, value: string) =>
     setValues((v) => ({ ...v, [key]: value }));
@@ -87,63 +88,47 @@ export function SubmissionForm() {
     <>
       <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8">
 
-        {/* Identity toggle */}
-        <fieldset className="flex flex-col gap-4">
-          <legend className="mb-1 font-heading text-h3 text-heading">Your Details</legend>
-
-          <div className="grid grid-cols-2 gap-2">
+        {/* Beta access — inline expand */}
+        {identityMode === "named" ? (
+          <div className="flex flex-col gap-4">
+            <Field id="name" label="Name" error={errors.name}>
+              <input
+                id="name"
+                className={inputClass}
+                value={values.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="Your name or spiritual name"
+                aria-invalid={Boolean(errors.name)}
+              />
+            </Field>
+            <Field id="email" label="Email (optional — for beta invite)" error={errors.email}>
+              <input
+                id="email"
+                type="email"
+                className={inputClass}
+                value={values.email}
+                onChange={(e) => set("email", e.target.value)}
+                placeholder="your@email.com"
+                aria-invalid={Boolean(errors.email)}
+              />
+            </Field>
             <button
               type="button"
-              onClick={() => setIdentityMode("anonymous")}
-              className={`flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all ${
-                identityMode === "anonymous"
-                  ? "border-primary bg-primary-light text-primary-dark"
-                  : "border-border bg-surface-alt text-muted"
-              }`}
+              onClick={() => { setIdentityMode("anonymous"); set("name", ""); set("email", ""); }}
+              className="self-start font-body text-caption text-muted underline-offset-2 hover:underline"
             >
-              <span className="text-base">🕵️</span>
-              Stay Anonymous
-            </button>
-            <button
-              type="button"
-              onClick={() => setIdentityMode("named")}
-              className={`flex flex-col items-center gap-1 rounded-xl border-[1.5px] px-3 py-2 text-body-sm font-medium transition-all ${
-                identityMode === "named"
-                  ? "border-primary bg-primary-light text-primary-dark"
-                  : "border-border bg-surface-alt text-muted"
-              }`}
-            >
-              <span className="text-base">📲</span>
-              Get Beta Access
+              Stay anonymous instead
             </button>
           </div>
-
-          {identityMode === "named" && (
-            <div className="flex flex-col gap-4">
-              <Field id="name" label="Name" error={errors.name}>
-                <input
-                  id="name"
-                  className={inputClass}
-                  value={values.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  placeholder="Your name or spiritual name"
-                  aria-invalid={Boolean(errors.name)}
-                />
-              </Field>
-              <Field id="email" label="Email (optional — for beta invite)" error={errors.email}>
-                <input
-                  id="email"
-                  type="email"
-                  className={inputClass}
-                  value={values.email}
-                  onChange={(e) => set("email", e.target.value)}
-                  placeholder="your@email.com"
-                  aria-invalid={Boolean(errors.email)}
-                />
-              </Field>
-            </div>
-          )}
-        </fieldset>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIdentityMode("named")}
+            className="self-start font-body text-body-sm font-medium text-primary-dark underline-offset-2 hover:underline"
+          >
+            📲 Get Beta Access
+          </button>
+        )}
 
         {/* Audio Recording */}
         <fieldset className="flex flex-col items-center gap-3 rounded-md bg-surface-alt/60 py-5">
@@ -161,6 +146,7 @@ export function SubmissionForm() {
           </div>
 
           <AudioRecorder
+            key={recorderKey}
             onChange={(v) => {
               setRecording(v);
               if (v) setRecordingError(null);
@@ -213,6 +199,10 @@ export function SubmissionForm() {
             setOffered(false);
             setRecording(null);
             setValues({ name: "", email: "", notes: "" });
+            setErrors({});
+            setRecordingError(null);
+            setSubmitError(null);
+            setRecorderKey((k) => k + 1);
           }}
         />
       )}

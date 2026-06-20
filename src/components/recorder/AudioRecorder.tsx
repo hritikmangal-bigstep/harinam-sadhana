@@ -20,6 +20,7 @@ interface AudioRecorderProps {
   onRecordingStateChange?: (isRecording: boolean) => void;
   isUploading?: boolean;
   uploadProgress?: number;
+  hideReRecord?: boolean;
 }
 
 const CANCEL_THRESHOLD = 80;
@@ -36,6 +37,7 @@ export function AudioRecorder({
   onRecordingStateChange,
   isUploading = false,
   uploadProgress = 0,
+  hideReRecord = false,
 }: AudioRecorderProps) {
   const rec = useRecorder();
   const startPos = useRef<{ x: number; y: number } | null>(null);
@@ -249,16 +251,18 @@ export function AudioRecorder({
             onEnded={() => setIsPlaying(false)}
             className="hidden"
           />
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={rec.reset}
-              className="btn-secondary h-10 gap-2 px-5 text-body-sm"
-            >
-              <RotateCcw size={16} aria-hidden="true" />
-              Re-record
-            </button>
-          </div>
+          {!hideReRecord && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={rec.reset}
+                className="btn-secondary h-10 gap-2 px-5 text-body-sm"
+              >
+                <RotateCcw size={16} aria-hidden="true" />
+                Re-record
+              </button>
+            </div>
+          )}
         </div>
       )}
 
