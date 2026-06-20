@@ -39,6 +39,9 @@ const queue: ClipRecord[] = [];
 /** clipIds currently being uploaded. */
 const inFlight = new Set<string>();
 
+/** Track which step each in-flight clipId belongs to (declared before notifyDrainIfDone). */
+const inFlightStepMap = new Map<string, RecordingStep>();
+
 /** clipIds already persisted this session (dedup guard). */
 const persisted = new Set<string>();
 
@@ -71,9 +74,6 @@ function notifyDrainIfDone(stepNumber: number): void {
     waiters.forEach((resolve) => resolve());
   }
 }
-
-/** Track which step each in-flight clipId belongs to. */
-const inFlightStepMap = new Map<string, RecordingStep>();
 
 // ── Core upload logic ──────────────────────────────────────────────────────
 
@@ -117,7 +117,7 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
     throw new Error(`S3 PUT failed (${putRes.status})`);
   }
 
-  // Step 3 — POST metadata to /api/recordings
+  // Step 3 — POST metadata to /api/recordings (includes quality metrics + session identity)
   const recordingsRes = await fetch(`${API_BASE}/api/recordings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -130,6 +130,16 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
       s3Key: audioKey,
       mimeType: clip.mimeType,
       durationMs: clip.durationMs,
+      fileSizeBytes: clip.fileSizeBytes,
+      peakDbfs: clip.peakDbfs,
+      rmsDbfs: clip.rmsDbfs,
+      clipping: clip.clipping,
+      silenceRatio: clip.silenceRatio,
+      snrEstimate: clip.snrEstimate,
+      lowQuality: clip.lowQuality,
+      session: (clip.name || clip.email)
+        ? { name: clip.name, email: clip.email }
+        : undefined,
     }),
     signal: AbortSignal.timeout(15_000),
   });
@@ -148,15 +158,16 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
 async function processWithRetry(clip: ClipRecord): Promise<void> {
   let attempt = 0;
   while (!persisted.has(clip.clipId)) {
-    if (attempt >= MAX_UPLOAD_ATTEMPTS) {
-      await deleteClip(clip.clipId);
-      return;
-    }
     try {
       await uploadClip(clip);
       return;
     } catch {
       attempt++;
+      // Check the limit before sleeping so we don't waste backoff time on eviction.
+      if (attempt >= MAX_UPLOAD_ATTEMPTS) {
+        await deleteClip(clip.clipId);
+        return;
+      }
       await sleep(backoffMs(attempt - 1));
     }
   }
@@ -211,9 +222,11 @@ if (typeof window !== "undefined") {
 void getAllPendingClips().then((clips) => {
   for (const clip of clips) {
     if (!persisted.has(clip.clipId) && !inFlight.has(clip.clipId)) {
-      // Re-queue with status reset to queued (uploading clips may be mid-flight
-      // from a previous session and need a fresh start)
-      queue.push({ ...clip, status: "queued" });
+      // Guard against double-enqueue if saveAndEnqueue raced with rehydration.
+      const alreadyQueued = queue.some((c) => c.clipId === clip.clipId);
+      if (!alreadyQueued) {
+        queue.push({ ...clip, status: "queued" });
+      }
     }
   }
   pumpQueue();
@@ -224,10 +237,15 @@ void getAllPendingClips().then((clips) => {
 /**
  * Save a clip to IndexedDB and immediately enqueue it for background upload.
  * Returns as soon as the clip is saved to IndexedDB — upload happens in the background.
+ * If the IDB write fails, the clip is still pushed to the in-memory queue so it
+ * uploads during this session (though it won't survive a page reload).
  */
 export async function saveAndEnqueue(clip: ClipRecord): Promise<void> {
-  await saveClip(clip);
-  // Avoid re-queueing a clip that's already in the queue or in-flight
+  try {
+    await saveClip(clip);
+  } catch {
+    // IDB failure — push to in-memory queue anyway so upload runs this session.
+  }
   if (!persisted.has(clip.clipId) && !inFlight.has(clip.clipId)) {
     const alreadyQueued = queue.some((c) => c.clipId === clip.clipId);
     if (!alreadyQueued) {

@@ -80,6 +80,22 @@ export function computeQualityMetrics(buffer: AudioBuffer): QualityMetrics {
   return { peakDbfs, rmsDbfs, clipping, silenceRatio, snrEstimate, lowQuality };
 }
 
+// Module-level singleton — mobile Safari caps simultaneous AudioContexts at 6.
+// Creating a new context per clip exhausts the cap and risks silent decode failures.
+let _audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const AudioCtx =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtx) return null;
+  if (!_audioCtx || _audioCtx.state === "closed") {
+    _audioCtx = new AudioCtx();
+  }
+  return _audioCtx;
+}
+
 /**
  * Decode an audio Blob to an AudioBuffer using the Web Audio API.
  * Returns null when decoding fails or AudioContext is unavailable (e.g. SSR).
@@ -87,14 +103,9 @@ export function computeQualityMetrics(buffer: AudioBuffer): QualityMetrics {
 export async function decodeBlob(blob: Blob): Promise<AudioBuffer | null> {
   try {
     const arrayBuffer = await blob.arrayBuffer();
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const ctx = new AudioCtx();
-    const buffer = await ctx.decodeAudioData(arrayBuffer);
-    await ctx.close();
-    return buffer;
+    const ctx = getAudioContext();
+    if (!ctx) return null;
+    return await ctx.decodeAudioData(arrayBuffer);
   } catch {
     return null;
   }

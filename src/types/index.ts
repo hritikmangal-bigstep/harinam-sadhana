@@ -94,5 +94,7 @@ export interface RecordingPayload {
   session?: {
     environment?: string;
     chantingSpeed?: string;
+    name?: string;
+    email?: string;
   };
 }

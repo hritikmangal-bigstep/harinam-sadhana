@@ -10,7 +10,7 @@ export const RECORDING_STEPS = [
 export type RecordingStep = (typeof RECORDING_STEPS)[number];
 
 /** S3 path prefix for each recitation step. */
-export const RECITATION_STEP_PREFIXES: Record<string, string> = {
+export const RECITATION_STEP_PREFIXES: Record<Exclude<RecordingStep, "isolated_keyword">, string> = {
   panch_tattva_recitation: "panch-tattva",
   mahamantra_round: "mahamantra",
   panch_tattva_mahamantra_round: "panch-tattva-mahamantra",

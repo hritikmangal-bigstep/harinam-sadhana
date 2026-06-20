@@ -7,6 +7,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { createPresignedGetUrl } from "@/lib/s3";
 
 const LINK_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7-day links
+const SHEETS_TIMEOUT_MS = 15_000;
 
 interface KwsSheetPayload {
   contributorId: string;
@@ -69,22 +70,31 @@ async function runAsync(payload: KwsSheetPayload): Promise<void> {
 
     const rec = (data ?? {}) as SessionPart;
 
-    // Generate 7-day presigned GET URLs
-    const keywordLinks = await Promise.all(
+    // Generate 7-day presigned GET URLs; any individual failure yields "" rather
+    // than aborting the entire Sheets row (Promise.allSettled instead of Promise.all).
+    const keywordLinks = (await Promise.allSettled(
       (rec.keyword_s3_keys ?? []).map((key, i) =>
         createPresignedGetUrl(key, LINK_EXPIRY_SECONDS).then(
-          url => `${rec.keyword_labels?.[i] ?? "kw"}: ${url}`,
+          (url) => `${rec.keyword_labels?.[i] ?? "kw"}: ${url}`,
         ),
       ),
-    );
-    const [part2, part3, part4] = await Promise.all([
+    )).map((r) => r.status === "fulfilled" ? r.value : "");
+
+    const [part2r, part3r, part4r] = await Promise.allSettled([
       rec.part2_s3_key ? createPresignedGetUrl(rec.part2_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
       rec.part3_s3_key ? createPresignedGetUrl(rec.part3_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
       rec.part4_s3_key ? createPresignedGetUrl(rec.part4_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
     ]);
+    const part2 = part2r.status === "fulfilled" ? part2r.value : "";
+    const part3 = part3r.status === "fulfilled" ? part3r.value : "";
+    const part4 = part4r.status === "fulfilled" ? part4r.value : "";
+
+    // Re-serialize timestamp server-side to prevent formula injection.
+    const ts = new Date(payload.timestamp);
+    const safeTimestamp = Number.isFinite(ts.getTime()) ? ts.toISOString() : new Date().toISOString();
 
     await appendSheetRow(
-      payload.timestamp,
+      safeTimestamp,
       payload.name || "Anonymous",
       payload.email,
       payload.sessionId.slice(0, 8),
@@ -124,12 +134,28 @@ async function appendSheetRow(
   });
   const sheets = google.sheets({ version: "v4", auth });
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: sheetId,
-    range: "KWS!A:H",
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [[timestamp, sanitizeCell(name), sanitizeCell(email), sessionId, part1, part2, part3, part4]],
-    },
-  });
+  // Race against a fixed timeout so a hung Google API call doesn't hold the
+  // orphaned async task open indefinitely.
+  await Promise.race([
+    sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: "KWS!A:H",
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [[
+          sanitizeCell(timestamp),
+          sanitizeCell(name),
+          sanitizeCell(email),
+          sanitizeCell(sessionId),
+          part1,
+          part2,
+          part3,
+          part4,
+        ]],
+      },
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Sheets API timeout")), SHEETS_TIMEOUT_MS)
+    ),
+  ]);
 }

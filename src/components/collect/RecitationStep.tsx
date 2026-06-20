@@ -24,61 +24,40 @@ interface StepContent {
   blocks: MantraBlock[];
 }
 
+const PANCH_TATTVA_BLOCK: MantraBlock = {
+  deva: [
+    "जय श्री कृष्ण चैतन्य प्रभु नित्यानन्द",
+    "श्री अद्वैत गदाधर श्रीवासादि गौर भक्त वृन्द",
+  ],
+  translit: [
+    "Jaya Śrī Kṛṣṇa Caitanya Prabhu Nityānanda",
+    "Śrī Advaita Gadādhara Śrīvāsādi Gaura Bhakta Vṛnda",
+  ],
+};
+
+const MAHA_MANTRA_BLOCK: MantraBlock = {
+  deva: [
+    "हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे",
+    "हरे राम हरे राम राम राम हरे हरे",
+  ],
+  translit: [
+    "Hare Kṛṣṇa Hare Kṛṣṇa Kṛṣṇa Kṛṣṇa Hare Hare",
+    "Hare Rāma Hare Rāma Rāma Rāma Hare Hare",
+  ],
+};
+
 const STEP_CONTENT: Record<2 | 3 | 4, StepContent> = {
   2: {
     heading: "Panch-tattva invocation",
-    blocks: [
-      {
-        deva: [
-          "जय श्री कृष्ण चैतन्य प्रभु नित्यानन्द",
-          "श्री अद्वैत गदाधर श्रीवासादि गौर भक्त वृन्द",
-        ],
-        translit: [
-          "Jaya Śrī Kṛṣṇa Caitanya Prabhu Nityānanda",
-          "Śrī Advaita Gadādhara Śrīvāsādi Gaura Bhakta Vṛnda",
-        ],
-      },
-    ],
+    blocks: [PANCH_TATTVA_BLOCK],
   },
   3: {
     heading: "Hare Krishna Maha-mantra",
-    blocks: [
-      {
-        deva: [
-          "हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे",
-          "हरे राम हरे राम राम राम हरे हरे",
-        ],
-        translit: [
-          "Hare Kṛṣṇa Hare Kṛṣṇa Kṛṣṇa Kṛṣṇa Hare Hare",
-          "Hare Rāma Hare Rāma Rāma Rāma Hare Hare",
-        ],
-      },
-    ],
+    blocks: [MAHA_MANTRA_BLOCK],
   },
   4: {
     heading: "Full round (Panch-tattva + Maha-mantra)",
-    blocks: [
-      {
-        deva: [
-          "जय श्री कृष्ण चैतन्य प्रभु नित्यानन्द",
-          "श्री अद्वैत गदाधर श्रीवासादि गौर भक्त वृन्द",
-        ],
-        translit: [
-          "Jaya Śrī Kṛṣṇa Caitanya Prabhu Nityānanda",
-          "Śrī Advaita Gadādhara Śrīvāsādi Gaura Bhakta Vṛnda",
-        ],
-      },
-      {
-        deva: [
-          "हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे",
-          "हरे राम हरे राम राम राम हरे हरे",
-        ],
-        translit: [
-          "Hare Kṛṣṇa Hare Kṛṣṇa Kṛṣṇa Kṛṣṇa Hare Hare",
-          "Hare Rāma Hare Rāma Rāma Rāma Hare Hare",
-        ],
-      },
-    ],
+    blocks: [PANCH_TATTVA_BLOCK, MAHA_MANTRA_BLOCK],
   },
 };
 

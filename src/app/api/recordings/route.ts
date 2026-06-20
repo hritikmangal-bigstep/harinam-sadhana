@@ -3,6 +3,7 @@ export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 import { isRecordingStep, isRecitationStep } from "@/lib/steps";
+import { runConfirmForClip } from "@/lib/asr-confirm";
 import type { RecordingPayload } from "@/types";
 
 const MAX_STRING_LENGTH = 500;
@@ -168,6 +169,8 @@ export async function POST(request: Request): Promise<NextResponse> {
         contributor_id: payload.contributorId,
         environment: payload.session?.environment ?? null,
         chanting_speed: payload.session?.chantingSpeed ?? null,
+        name: payload.session?.name ?? null,
+        email: payload.session?.email ?? null,
       },
       { onConflict: "id" }
     );
@@ -179,7 +182,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const { data: recordingData, error: recordingError } = await supabase
+  // ignoreDuplicates: true prevents overwriting existing rows on retry, but
+  // PostgREST returns 0 rows with PGRST116 when the row is skipped. Removing
+  // .select("id").single() avoids treating a skipped duplicate as an error.
+  const { error: recordingError } = await supabase
     .from("recordings")
     .upsert(
       {
@@ -202,9 +208,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         recorded_at: recordedAt,
       },
       { onConflict: "clip_id", ignoreDuplicates: true }
-    )
-    .select("id")
-    .single();
+    );
 
   if (recordingError) {
     return NextResponse.json(
@@ -213,19 +217,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  if (!isRecitationStep(payload.step)) {
-    const origin = new URL(request.url).origin;
-    void fetch(`${origin}/api/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clipId: payload.clipId,
-        label: payload.label,
-        s3Key: payload.s3Key,
-      }),
-    }).catch(() => {});
+  // Call confirm logic directly — no HTTP round-trip, no Amplify Lambda URL issue.
+  if (!isRecitationStep(payload.step) && payload.label) {
+    void runConfirmForClip(payload.clipId, payload.label);
   }
 
-  const id = (recordingData as { id: number } | null)?.id ?? null;
-  return NextResponse.json({ id, clipId: payload.clipId }, { status: 201 });
+  return NextResponse.json({ clipId: payload.clipId }, { status: 201 });
 }

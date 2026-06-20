@@ -74,7 +74,7 @@ describe("POST /api/recordings", () => {
     const res = await POST(makeRequest(basePayload));
     expect(res.status).toBe(201);
     const json = await res.json();
-    expect(json).toMatchObject({ id: 42, clipId: "clip-uuid-001" });
+    expect(json).toMatchObject({ clipId: "clip-uuid-001" });
     expect(mockUpsert).toHaveBeenCalledWith(
       "collection_sessions",
       expect.objectContaining({ id: "session-uuid-001" }),

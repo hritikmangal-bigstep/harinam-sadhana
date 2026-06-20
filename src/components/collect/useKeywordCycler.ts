@@ -166,6 +166,8 @@ export function useKeywordCycler({
   const handlePause = () => {
     runningRef.current = false;
     try { mediaRecorderRef.current?.stop(); } catch { /* ignore */ }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
     setPhase("idle");
     setCountdown(null);
   };

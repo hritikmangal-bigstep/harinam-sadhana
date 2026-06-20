@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { getContributorId } from "@/lib/contributor-id";
 import { generateUUID } from "@/lib/uuid";
 import { saveAndEnqueue, drainStep, cancelDrain } from "@/lib/autosave/upload-queue";
+import { decodeBlob, computeQualityMetrics } from "@/lib/quality-metrics";
 import type { ClipRecord } from "@/lib/autosave/store";
 import type { RecordingStep } from "@/lib/steps";
 import { SuccessOverlay } from "@/components/state/SuccessOverlay";
@@ -74,19 +75,36 @@ export function ContributionFlow() {
   });
 
   const handleClipReady: OnClipReady = (clipId, blob, mimeType, meta) => {
-    const record: ClipRecord = {
-      clipId,
-      sessionId,
-      contributorId,
-      step: meta.step,
-      label: meta.label,
-      blob,
-      mimeType,
-      durationMs: meta.durationMs,
-      status: "queued",
-      createdAt: Date.now(),
-    };
-    void saveAndEnqueue(record);
+    void (async () => {
+      let metrics = null;
+      try {
+        const buffer = await decodeBlob(blob);
+        if (buffer) metrics = computeQualityMetrics(buffer);
+      } catch { /* quality metrics are optional — proceed without them */ }
+
+      const record: ClipRecord = {
+        clipId,
+        sessionId,
+        contributorId,
+        step: meta.step,
+        label: meta.label,
+        blob,
+        mimeType,
+        durationMs: meta.durationMs,
+        fileSizeBytes: blob.size,
+        peakDbfs: metrics?.peakDbfs,
+        rmsDbfs: metrics?.rmsDbfs,
+        clipping: metrics?.clipping,
+        silenceRatio: metrics?.silenceRatio,
+        snrEstimate: metrics?.snrEstimate,
+        lowQuality: metrics?.lowQuality,
+        name: name || undefined,
+        email: email || undefined,
+        status: "queued",
+        createdAt: Date.now(),
+      };
+      void saveAndEnqueue(record);
+    })();
   };
 
   // Step 1 keyword take handler — generates a clipId and calls handleClipReady.

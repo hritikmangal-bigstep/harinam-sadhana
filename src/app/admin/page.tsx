@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { timingSafeEqual, createHash } from "crypto";
 import { getSupabaseClient } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,14 @@ interface ResolvedSession {
   part2Key: string | null;
   part3Key: string | null;
   part4Key: string | null;
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+
+function constantTimeEqual(a: string, b: string): boolean {
+  const ha = createHash("sha256").update(a).digest();
+  const hb = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ha, hb);
 }
 
 // ── Data fetching ──────────────────────────────────────────────────────────
@@ -102,7 +111,10 @@ export default async function AdminPage({
   const provided = Array.isArray(searchParams.token)
     ? searchParams.token[0]
     : searchParams.token;
-  if (!adminToken || provided !== adminToken) {
+
+  // Constant-time comparison prevents timing oracle brute-force.
+  // Note: token in query string is logged by CDN — rotate if exposed.
+  if (!adminToken || !provided || !constantTimeEqual(provided, adminToken)) {
     notFound();
   }
 

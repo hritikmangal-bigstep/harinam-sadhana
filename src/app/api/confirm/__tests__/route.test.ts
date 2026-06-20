@@ -5,9 +5,17 @@ import { POST } from "../route";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const mockUpdate = jest.fn().mockReturnValue({ eq: jest.fn().mockResolvedValue({ error: null }) });
-const mockFrom = jest.fn().mockReturnValue({ update: mockUpdate });
-const mockGetSupabaseClient = jest.fn().mockReturnValue({ from: mockFrom });
+// runConfirmForClip calls from("recordings") twice:
+//   1. .select("s3_key").eq("clip_id", clipId).single()  → look up the S3 key
+//   2. .update({...}).eq("clip_id", clipId)              → write ASR result
+
+const mockUpdateEq = jest.fn();
+const mockUpdate = jest.fn();
+const mockSelectSingle = jest.fn();
+const mockSelectEq = jest.fn();
+const mockSelect = jest.fn();
+const mockFrom = jest.fn();
+const mockGetSupabaseClient = jest.fn();
 
 jest.mock("@/lib/supabase", () => ({
   getSupabaseClient: () => mockGetSupabaseClient(),
@@ -84,10 +92,17 @@ describe("POST /api/confirm", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset the update chain mocks
-    const eqMock = jest.fn().mockResolvedValue({ error: null });
-    mockUpdate.mockReturnValue({ eq: eqMock });
-    mockFrom.mockReturnValue({ update: mockUpdate });
+
+    // Update chain: supabase.from("recordings").update({...}).eq("clip_id", clipId)
+    mockUpdateEq.mockResolvedValue({ error: null });
+    mockUpdate.mockReturnValue({ eq: mockUpdateEq });
+
+    // Select chain: supabase.from("recordings").select("s3_key").eq("clip_id", clipId).single()
+    mockSelectSingle.mockResolvedValue({ data: { s3_key: "kws-collection/clips/hare/x.webm" }, error: null });
+    mockSelectEq.mockReturnValue({ single: mockSelectSingle });
+    mockSelect.mockReturnValue({ eq: mockSelectEq });
+
+    mockFrom.mockReturnValue({ select: mockSelect, update: mockUpdate });
     mockGetSupabaseClient.mockReturnValue({ from: mockFrom });
 
     process.env = {

@@ -144,6 +144,8 @@ export function buildKwsKey(
   const ext = extensionFor(contentType);
   if (step === "isolated_keyword") {
     if (!label) throw new Error("label is required for isolated_keyword step");
+    // Validate label against SAFE_ID_RE to prevent path traversal (../../…).
+    if (!SAFE_ID_RE.test(label)) throw new Error("Invalid label");
     return `kws-collection/clips/${label}/${contributorId}__${clipId}.${ext}`;
   }
   const prefix = RECITATION_STEP_PREFIXES[step];
