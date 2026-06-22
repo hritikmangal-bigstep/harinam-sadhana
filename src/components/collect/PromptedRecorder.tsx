@@ -44,7 +44,7 @@ export function PromptedRecorder({
   const overallPct = Math.round((totalCollected / totalTarget) * 100);
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-4 sm:gap-6">
       <div className="w-full max-w-sm">
         <div className="mb-1 flex items-center justify-between text-caption text-muted">
           <span>Overall progress</span>
@@ -58,12 +58,12 @@ export function PromptedRecorder({
         </div>
       </div>
 
-      <div className="card flex w-full max-w-sm flex-col items-center gap-3 text-center">
+      <div className="card flex w-full max-w-sm flex-col items-center gap-2 py-4 text-center sm:gap-3 sm:py-6">
         <p className="text-caption uppercase tracking-widest text-muted">
           {activeKeyword.keywordSet === "maha_mantra" ? "Maha Mantra" : "Panch Tattva"}
         </p>
         <p
-          className="text-5xl font-semibold leading-tight text-[var(--color-heading)]"
+          className="text-4xl font-semibold leading-tight text-[var(--color-heading)] sm:text-5xl"
           style={{ fontFamily: "var(--font-mantra)" }}
         >
           {activeKeyword.devanagari}
@@ -76,7 +76,7 @@ export function PromptedRecorder({
         </span>
       </div>
 
-      <div className="flex min-h-[80px] items-center justify-center">
+      <div className="flex min-h-[60px] items-center justify-center sm:min-h-[80px]">
         {phase === "countdown" && countdown !== null && (
           <span className="text-7xl font-extrabold text-[var(--color-primary)]">{countdown}</span>
         )}

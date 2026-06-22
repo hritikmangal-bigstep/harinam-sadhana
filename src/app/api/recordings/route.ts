@@ -66,6 +66,12 @@ function validatePayload(body: unknown): ValidationResult {
 
   const step = b["step"] as RecordingPayload["step"];
 
+  // Normalize codec suffix (e.g. "audio/webm;codecs=opus" → "audio/webm") before
+  // checking so that clips rehydrated from IndexedDB still pass validation.
+  if (typeof b["mimeType"] === "string") {
+    b["mimeType"] = b["mimeType"].split(";")[0].trim();
+  }
+
   if (
     !(ALLOWED_MIME_TYPES as readonly string[]).includes(b["mimeType"] as string)
   ) {

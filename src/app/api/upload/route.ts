@@ -32,7 +32,13 @@ export async function POST(request: Request) {
 async function handleKwsRequest(
   raw: Record<string, unknown>,
 ): Promise<NextResponse> {
-  const { step, contentType, contributorId, clipId, label } = raw;
+  const { step, contributorId, clipId, label } = raw;
+  // Strip codec params (e.g. "audio/webm;codecs=opus" → "audio/webm") so that
+  // clips rehydrated from IndexedDB with a codec suffix still pass validation.
+  const contentType =
+    typeof raw.contentType === "string"
+      ? raw.contentType.split(";")[0].trim()
+      : raw.contentType;
 
   if (typeof step !== "string" || !isRecordingStep(step)) {
     return NextResponse.json(

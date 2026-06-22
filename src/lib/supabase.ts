@@ -54,6 +54,10 @@ export function getSupabaseClient(): SupabaseClient {
         persistSession: false,
         autoRefreshToken: false,
       },
+      global: {
+        // Bypass Next.js Data Cache so server components always see live data.
+        fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+      },
     });
   }
   return cachedClient;
