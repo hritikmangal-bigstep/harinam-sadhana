@@ -98,7 +98,6 @@ function validatePayload(body: unknown): ValidationResult {
 
   for (const field of [
     "durationMs",
-    "sampleRate",
     "fileSizeBytes",
     "peakDbfs",
     "rmsDbfs",
@@ -135,7 +134,6 @@ function validatePayload(body: unknown): ValidationResult {
     s3Key: b["s3Key"] as string,
     mimeType: b["mimeType"] as string,
     durationMs: b["durationMs"] as number | undefined,
-    sampleRate: b["sampleRate"] as number | undefined,
     fileSizeBytes: b["fileSizeBytes"] as number | undefined,
     peakDbfs: b["peakDbfs"] as number | undefined,
     rmsDbfs: b["rmsDbfs"] as number | undefined,
@@ -173,8 +171,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       {
         id: payload.sessionId,
         contributor_id: payload.contributorId,
-        environment: payload.session?.environment ?? null,
-        chanting_speed: payload.session?.chantingSpeed ?? null,
         name: payload.session?.name ?? null,
         email: payload.session?.email ?? null,
       },
@@ -203,7 +199,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         s3_key: payload.s3Key,
         mime_type: payload.mimeType,
         duration_ms: payload.durationMs ?? null,
-        sample_rate: payload.sampleRate ?? null,
         file_size_bytes: payload.fileSizeBytes ?? null,
         peak_dbfs: payload.peakDbfs ?? null,
         rms_dbfs: payload.rmsDbfs ?? null,

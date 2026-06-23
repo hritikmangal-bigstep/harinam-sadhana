@@ -77,14 +77,18 @@ export function PromptedRecorder({
       </div>
 
       <div className="flex min-h-[60px] items-center justify-center sm:min-h-[80px]">
-        {phase === "countdown" && countdown !== null && (
-          <span className="text-7xl font-extrabold text-[var(--color-primary)]">{countdown}</span>
+        {phase === "countdown" && (
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xl font-semibold tracking-wide text-[var(--color-primary)]">Please Wait…</span>
+            <span className="font-mono text-body-sm text-muted">{countdown}s</span>
+          </div>
         )}
         {phase === "recording" && (
           <div className="flex flex-col items-center gap-2">
             <div className="flex h-14 w-14 animate-pulse items-center justify-center rounded-full bg-red-600 text-white shadow-glow">
               <Mic size={24} aria-hidden="true" />
             </div>
+            <span className="text-2xl font-semibold text-red-600">Speak Now</span>
             <span className="font-mono text-body-sm text-muted">{recSecsLeft}s</span>
           </div>
         )}

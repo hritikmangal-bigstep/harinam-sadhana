@@ -58,7 +58,7 @@ export function ContributionFlow() {
   const [isSaving, setIsSaving] = useState(false);
   const isSavingRef = useRef(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [identityMode, setIdentityMode] = useState<"anonymous" | "named">("anonymous");
+  const [identityMode, setIdentityMode] = useState<"anonymous" | "named">("named");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -129,6 +129,16 @@ export function ContributionFlow() {
     isSavingRef.current = true;
     setIsSaving(true);
     try {
+      // Persist name/email whenever the beta fields are filled, regardless of
+      // whether any clips were recorded in this step.
+      if (name || email) {
+        void fetch("/api/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId, contributorId, name, email }),
+        });
+      }
+
       // Race drain against a 6s timeout so hung uploads never block the UI.
       let drained = false;
       await Promise.race([

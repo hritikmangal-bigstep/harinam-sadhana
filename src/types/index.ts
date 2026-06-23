@@ -80,7 +80,6 @@ export interface RecordingPayload {
 
   // Technical metadata (optional — computed by client)
   durationMs?: number;
-  sampleRate?: number;
   fileSizeBytes?: number;
 
   // Quality metrics (optional — added by U8)
@@ -92,8 +91,6 @@ export interface RecordingPayload {
   lowQuality?: boolean;
 
   session?: {
-    environment?: string;
-    chantingSpeed?: string;
     name?: string;
     email?: string;
   };

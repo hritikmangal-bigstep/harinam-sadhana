@@ -62,29 +62,21 @@ const STEP_CONTENT: Record<2 | 3 | 4, StepContent> = {
 };
 
 export function RecitationStep({ step, onClipReady, onRecordingChange }: RecitationStepProps) {
-  const [pending, setPending] = useState<{ value: RecordingValue; clipId: string } | null>(null);
-  const [accepted, setAccepted] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [recorderKey, setRecorderKey] = useState(0);
 
   const handleChange = useCallback((value: RecordingValue | null) => {
-    if (!value) { setPending(null); setAccepted(false); return; }
-    setPending({ value, clipId: generateUUID() });
-    setAccepted(false);
-  }, []);
-
-  const handleAccept = useCallback(() => {
-    if (!pending || accepted) return;
+    if (!value) return;
     const meta: ClipMeta = {
       step: STEP_TO_RECORDING_STEP[step],
-      durationMs: pending.value.seconds * 1000,
+      durationMs: value.seconds * 1000,
     };
-    onClipReady(pending.clipId, pending.value.blob, pending.value.mimeType, meta);
-    setAccepted(true);
-  }, [pending, accepted, step, onClipReady]);
+    onClipReady(generateUUID(), value.blob, value.mimeType, meta);
+    setSaved(true);
+  }, [step, onClipReady]);
 
   const handleReRecord = useCallback(() => {
-    setPending(null);
-    setAccepted(false);
+    setSaved(false);
     setRecorderKey((k) => k + 1);
   }, []);
 
@@ -126,27 +118,9 @@ export function RecitationStep({ step, onClipReady, onRecordingChange }: Recitat
       {/* Recorder */}
       <AudioRecorder key={recorderKey} onChange={handleChange} onRecordingStateChange={onRecordingChange} hideReRecord />
 
-      {pending && !accepted && (
+      {saved && (
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleAccept}
-            className="btn-primary h-10 px-5 text-body-sm"
-          >
-            ✓ Accept
-          </button>
-          <button
-            type="button"
-            onClick={handleReRecord}
-            className="btn-secondary h-10 px-5 text-body-sm"
-          >
-            Re-record
-          </button>
-        </div>
-      )}
-      {accepted && (
-        <div className="flex items-center gap-3">
-          <span className="font-body text-body-sm font-semibold text-green-600">✓ Accepted</span>
+          <span className="font-body text-body-sm font-semibold text-green-600">✓ Saved</span>
           <button
             type="button"
             onClick={handleReRecord}

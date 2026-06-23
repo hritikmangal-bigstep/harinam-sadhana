@@ -8,8 +8,6 @@ export interface DemographicsData {
   ageGroup?: string;
   gender?: string;
   region?: string;
-  environment?: string;
-  chantingSpeed?: string;
 }
 
 export interface DemographicsStepProps {
@@ -41,8 +39,6 @@ export function DemographicsStep({ onSave, onSkip }: DemographicsStepProps) {
   const [ageGroup, setAgeGroup] = useState("");
   const [gender, setGender] = useState("");
   const [region, setRegion] = useState("");
-  const [environment, setEnvironment] = useState("");
-  const [chantingSpeed, setChantingSpeed] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -52,8 +48,6 @@ export function DemographicsStep({ onSave, onSkip }: DemographicsStepProps) {
       ageGroup: ageGroup || undefined,
       gender: gender || undefined,
       region: region.trim() || undefined,
-      environment: environment || undefined,
-      chantingSpeed: chantingSpeed || undefined,
     };
     setIsSaving(true);
     try {
@@ -144,38 +138,6 @@ export function DemographicsStep({ onSave, onSkip }: DemographicsStepProps) {
           />
         </FieldWrap>
 
-        {/* Recording environment */}
-        <FieldWrap>
-          <Label htmlFor="demographics-environment">Recording environment</Label>
-          <select
-            id="demographics-environment"
-            className={selectClass}
-            value={environment}
-            onChange={(e) => setEnvironment(e.target.value)}
-          >
-            <option value="">Select environment</option>
-            <option value="indoor_quiet">Indoor quiet</option>
-            <option value="indoor_background">Indoor with background noise</option>
-            <option value="outdoor">Outdoor</option>
-            <option value="other">Other</option>
-          </select>
-        </FieldWrap>
-
-        {/* Chanting speed */}
-        <FieldWrap>
-          <Label htmlFor="demographics-chanting-speed">Chanting speed</Label>
-          <select
-            id="demographics-chanting-speed"
-            className={selectClass}
-            value={chantingSpeed}
-            onChange={(e) => setChantingSpeed(e.target.value)}
-          >
-            <option value="">Select speed</option>
-            <option value="slow">Slow</option>
-            <option value="normal">Normal</option>
-            <option value="fast">Fast</option>
-          </select>
-        </FieldWrap>
       </fieldset>
 
       <div className="flex flex-col items-center gap-3">
