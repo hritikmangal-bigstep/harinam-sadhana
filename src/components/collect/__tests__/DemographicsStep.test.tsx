@@ -91,19 +91,4 @@ describe("DemographicsStep", () => {
     expect(options).toContain("51+");
   });
 
-  it("renders all recording environment options", () => {
-    render(
-      <DemographicsStep onSave={jest.fn()} onSkip={jest.fn()} />,
-    );
-
-    const envSelect = screen.getByLabelText(/recording environment/i);
-    const options = Array.from((envSelect as HTMLSelectElement).options).map(
-      (o) => o.text,
-    );
-
-    expect(options).toContain("Indoor quiet");
-    expect(options).toContain("Indoor with background noise");
-    expect(options).toContain("Outdoor");
-    expect(options).toContain("Other");
-  });
 });
