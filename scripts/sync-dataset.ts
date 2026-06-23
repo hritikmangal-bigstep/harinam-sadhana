@@ -19,7 +19,7 @@ import {
 } from "fs";
 import { dirname, extname, join } from "path";
 import { pipeline } from "stream/promises";
-import { Readable } from "stream";
+import type { Readable } from "stream";
 import { buildEnv } from "../src/lib/build-env";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -122,12 +122,9 @@ async function downloadOne(row: RecordingRow): Promise<void> {
   );
   if (!Body) throw new Error(`Empty S3 body for key ${row.s3_key}`);
 
-  // AWS SDK v3 returns a Node.js Readable in server context
-  const nodeStream = Body instanceof Readable
-    ? Body
-    : Readable.fromWeb(Body as Parameters<typeof Readable.fromWeb>[0]);
-
-  await pipeline(nodeStream, createWriteStream(dest));
+  // AWS SDK v3 returns a Node.js Readable in server context; cast through
+  // unknown to satisfy the SdkStreamMixin union that tsc can't narrow cleanly.
+  await pipeline(Body as unknown as Readable, createWriteStream(dest));
 }
 
 // Run `fn` over `items` with at most `limit` concurrent workers.
