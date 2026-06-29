@@ -129,25 +129,17 @@ const SAFE_ID_RE = /^[a-zA-Z0-9_-]{1,128}$/;
 
 /**
  * Build the S3 key for a KWS clip.
- * - isolated_keyword  → kws-collection/clips/{label}/{contributorId}__{clipId}.{ext}
- * - recitation steps  → kws-collection/recitations/{prefix}/{contributorId}/{clipId}.{ext}
+ * Structure: kws-collection/recitations/{prefix}/{contributorId}/{clipId}.{ext}
  */
 export function buildKwsKey(
   step: RecordingStep,
   contributorId: string,
   clipId: string,
   contentType: AudioMimeType,
-  label?: string,
 ): string {
   if (!SAFE_ID_RE.test(contributorId)) throw new Error("Invalid contributorId");
   if (!SAFE_ID_RE.test(clipId)) throw new Error("Invalid clipId");
   const ext = extensionFor(contentType);
-  if (step === "isolated_keyword") {
-    if (!label) throw new Error("label is required for isolated_keyword step");
-    // Validate label against SAFE_ID_RE to prevent path traversal (../../…).
-    if (!SAFE_ID_RE.test(label)) throw new Error("Invalid label");
-    return `kws-collection/clips/${label}/${contributorId}__${clipId}.${ext}`;
-  }
   const prefix = RECITATION_STEP_PREFIXES[step];
   return `kws-collection/recitations/${prefix}/${contributorId}/${clipId}.${ext}`;
 }
@@ -160,10 +152,9 @@ export async function createKwsPresignedUploadUrl(
   contributorId: string,
   clipId: string,
   contentType: AudioMimeType,
-  label?: string,
 ): Promise<{ audioUrl: string; audioKey: string; audioStorageUrl: string }> {
   const { region, bucket } = getS3Config();
-  const audioKey = buildKwsKey(step, contributorId, clipId, contentType, label);
+  const audioKey = buildKwsKey(step, contributorId, clipId, contentType);
   const audioUrl = await presignPut(audioKey, contentType);
   const audioStorageUrl = `https://${bucket}.s3.${region}.amazonaws.com/${audioKey}`;
   return { audioUrl, audioKey, audioStorageUrl };

@@ -6,30 +6,26 @@ export const dynamic = "force-dynamic";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-interface SessionPartRow {
-  session_id: string;
-  contributor_id: string;
+interface SessionRow {
+  id: string;
   name: string | null;
   email: string | null;
   started_at: string;
-  keyword_clip_count: number;
-  keyword_labels: string[] | null;
-  keyword_s3_keys: string[] | null;
+  part1_s3_key: string | null;
   part2_s3_key: string | null;
-  part3_s3_key: string | null;
-  part4_s3_key: string | null;
+  part1_duration_s: number | null;
+  part2_duration_s: number | null;
 }
 
 interface ResolvedSession {
   sessionId: string;
-  contributorId: string;
   name: string | null;
   email: string | null;
   startedAt: string;
-  keywordClips: { label: string; key: string }[];
+  part1Key: string | null;
   part2Key: string | null;
-  part3Key: string | null;
-  part4Key: string | null;
+  part1DurationMs: number | null;
+  part2DurationMs: number | null;
 }
 
 // ── Auth ───────────────────────────────────────────────────────────────────
@@ -45,28 +41,23 @@ function constantTimeEqual(a: string, b: string): boolean {
 async function fetchSessions(): Promise<ResolvedSession[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
-    .from("kws_session_parts")
-    .select("*")
+    .from("collection_sessions")
+    .select("id,name,email,started_at,part1_s3_key,part2_s3_key,part1_duration_s,part2_duration_s")
     .order("started_at", { ascending: false })
     .limit(100);
 
   if (error || !data) return [];
 
-  return (data as SessionPartRow[]).map((s) => {
-    const keys = s.keyword_s3_keys ?? [];
-    const labels = s.keyword_labels ?? [];
-    return {
-      sessionId: s.session_id,
-      contributorId: s.contributor_id,
-      name: s.name,
-      email: s.email,
-      startedAt: s.started_at,
-      keywordClips: keys.map((key, i) => ({ label: labels[i] ?? "?", key })),
-      part2Key: s.part2_s3_key,
-      part3Key: s.part3_s3_key,
-      part4Key: s.part4_s3_key,
-    };
-  });
+  return (data as SessionRow[]).map((s) => ({
+    sessionId: s.id,
+    name: s.name,
+    email: s.email,
+    startedAt: s.started_at,
+    part1Key: s.part1_s3_key,
+    part2Key: s.part2_s3_key,
+    part1DurationMs: s.part1_duration_s,
+    part2DurationMs: s.part2_duration_s,
+  }));
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────
@@ -75,8 +66,14 @@ function EmptyCell() {
   return <span className="text-muted text-xs">—</span>;
 }
 
-function ListenLink({ s3Key, label }: { s3Key: string | null; label?: string }) {
+function formatDuration(s: number | null): string {
+  if (!s) return "";
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function ListenLink({ s3Key, durationMs }: { s3Key: string | null; durationMs: number | null }) {
   if (!s3Key) return <EmptyCell />;
+  const dur = formatDuration(durationMs);
   return (
     <a
       href={`/api/listen?key=${encodeURIComponent(s3Key)}`}
@@ -84,19 +81,8 @@ function ListenLink({ s3Key, label }: { s3Key: string | null; label?: string }) 
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
     >
-      ▶ {label ?? "Listen"}
+      ▶ Listen{dur ? ` (${dur})` : ""}
     </a>
-  );
-}
-
-function KeywordClips({ clips }: { clips: { label: string; key: string }[] }) {
-  if (clips.length === 0) return <EmptyCell />;
-  return (
-    <div className="flex flex-wrap gap-1">
-      {clips.map((c, i) => (
-        <ListenLink key={i} s3Key={c.key} label={c.label} />
-      ))}
-    </div>
   );
 }
 
@@ -140,10 +126,8 @@ export default async function AdminPage({
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Part 1 · Keywords</th>
-                  <th className="px-4 py-3">Part 2 · Panch-tattva</th>
-                  <th className="px-4 py-3">Part 3 · Maha-mantra</th>
-                  <th className="px-4 py-3">Part 4 · Full round</th>
+                  <th className="px-4 py-3">Part 1 · Panch-tattva</th>
+                  <th className="px-4 py-3">Part 2 · Maha-mantra</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -161,17 +145,11 @@ export default async function AdminPage({
                         timeStyle: "short",
                       })}
                     </td>
-                    <td className="px-4 py-3 max-w-xs">
-                      <KeywordClips clips={s.keywordClips} />
+                    <td className="px-4 py-3">
+                      <ListenLink s3Key={s.part1Key} durationMs={s.part1DurationMs} />
                     </td>
                     <td className="px-4 py-3">
-                      <ListenLink s3Key={s.part2Key} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <ListenLink s3Key={s.part3Key} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <ListenLink s3Key={s.part4Key} />
+                      <ListenLink s3Key={s.part2Key} durationMs={s.part2DurationMs} />
                     </td>
                   </tr>
                 ))}

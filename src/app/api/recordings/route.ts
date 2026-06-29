@@ -2,149 +2,23 @@ export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
-import { isRecordingStep, isRecitationStep } from "@/lib/steps";
-import { runConfirmForClip } from "@/lib/asr-confirm";
-import type { RecordingPayload } from "@/types";
+import { isRecordingStep } from "@/lib/steps";
+import type { RecordingStep } from "@/lib/steps";
+
+const STEP_TO_S3_COLUMN: Record<RecordingStep, "part1_s3_key" | "part2_s3_key"> = {
+  panch_tattva_recitation: "part1_s3_key",
+  mahamantra_round: "part2_s3_key",
+};
+
+const STEP_TO_DURATION_COLUMN: Record<RecordingStep, "part1_duration_s" | "part2_duration_s"> = {
+  panch_tattva_recitation: "part1_duration_s",
+  mahamantra_round: "part2_duration_s",
+};
 
 const MAX_STRING_LENGTH = 500;
-const ALLOWED_MIME_TYPES = ["audio/webm", "audio/mp4"] as const;
 
 function isNonEmptyString(val: unknown): val is string {
   return typeof val === "string" && val.trim().length > 0;
-}
-
-function isShortString(val: string): boolean {
-  return val.length <= MAX_STRING_LENGTH;
-}
-
-function isFiniteNumberOrUndefined(val: unknown): val is number | undefined {
-  if (val === undefined || val === null) return true;
-  return typeof val === "number" && isFinite(val);
-}
-
-type ValidationResult =
-  | { payload: RecordingPayload; error: null }
-  | { payload: null; error: string };
-
-function validatePayload(body: unknown): ValidationResult {
-  if (typeof body !== "object" || body === null) {
-    return { payload: null, error: "Request body must be a JSON object" };
-  }
-
-  const b = body as Record<string, unknown>;
-
-  for (const field of [
-    "clipId",
-    "sessionId",
-    "contributorId",
-    "s3Key",
-    "mimeType",
-  ] as const) {
-    if (!isNonEmptyString(b[field])) {
-      return {
-        payload: null,
-        error: `Field '${field}' is required and must be a non-empty string`,
-      };
-    }
-    if (!isShortString(b[field] as string)) {
-      return {
-        payload: null,
-        error: `Field '${field}' exceeds maximum length of ${MAX_STRING_LENGTH}`,
-      };
-    }
-  }
-
-  if (!isNonEmptyString(b["step"])) {
-    return { payload: null, error: "Field 'step' is required" };
-  }
-  if (!isRecordingStep(b["step"] as string)) {
-    return {
-      payload: null,
-      error: "Field 'step' must be a valid RecordingStep",
-    };
-  }
-
-  const step = b["step"] as RecordingPayload["step"];
-
-  // Normalize codec suffix (e.g. "audio/webm;codecs=opus" → "audio/webm") before
-  // checking so that clips rehydrated from IndexedDB still pass validation.
-  if (typeof b["mimeType"] === "string") {
-    b["mimeType"] = b["mimeType"].split(";")[0].trim();
-  }
-
-  if (
-    !(ALLOWED_MIME_TYPES as readonly string[]).includes(b["mimeType"] as string)
-  ) {
-    return {
-      payload: null,
-      error: `Field 'mimeType' must be one of: ${ALLOWED_MIME_TYPES.join(", ")}`,
-    };
-  }
-
-  if (step === "isolated_keyword") {
-    if (!isNonEmptyString(b["label"])) {
-      return {
-        payload: null,
-        error: "Field 'label' is required for step 'isolated_keyword'",
-      };
-    }
-    if (!isShortString(b["label"] as string)) {
-      return {
-        payload: null,
-        error: `Field 'label' exceeds maximum length of ${MAX_STRING_LENGTH}`,
-      };
-    }
-  }
-
-  for (const field of [
-    "durationMs",
-    "fileSizeBytes",
-    "peakDbfs",
-    "rmsDbfs",
-    "silenceRatio",
-    "snrEstimate",
-  ] as const) {
-    if (!isFiniteNumberOrUndefined(b[field])) {
-      return {
-        payload: null,
-        error: `Field '${field}', if provided, must be a finite number`,
-      };
-    }
-  }
-
-  for (const field of ["clipping", "lowQuality"] as const) {
-    if (
-      b[field] !== undefined &&
-      b[field] !== null &&
-      typeof b[field] !== "boolean"
-    ) {
-      return {
-        payload: null,
-        error: `Field '${field}', if provided, must be a boolean`,
-      };
-    }
-  }
-
-  const payload: RecordingPayload = {
-    clipId: b["clipId"] as string,
-    sessionId: b["sessionId"] as string,
-    contributorId: b["contributorId"] as string,
-    step,
-    label: step === "isolated_keyword" ? (b["label"] as string) : undefined,
-    s3Key: b["s3Key"] as string,
-    mimeType: b["mimeType"] as string,
-    durationMs: b["durationMs"] as number | undefined,
-    fileSizeBytes: b["fileSizeBytes"] as number | undefined,
-    peakDbfs: b["peakDbfs"] as number | undefined,
-    rmsDbfs: b["rmsDbfs"] as number | undefined,
-    clipping: b["clipping"] as boolean | undefined,
-    silenceRatio: b["silenceRatio"] as number | undefined,
-    snrEstimate: b["snrEstimate"] as number | undefined,
-    lowQuality: b["lowQuality"] as boolean | undefined,
-    session: b["session"] as RecordingPayload["session"],
-  };
-
-  return { payload, error: null };
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -155,73 +29,64 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const validation = validatePayload(body);
-  if (validation.error !== null) {
-    return NextResponse.json({ error: validation.error }, { status: 400 });
+  if (typeof body !== "object" || body === null) {
+    return NextResponse.json({ error: "Request body must be a JSON object" }, { status: 400 });
   }
 
-  const payload = validation.payload;
-  const recordedAt = new Date().toISOString();
+  const b = body as Record<string, unknown>;
+
+  for (const field of ["clipId", "sessionId", "contributorId", "s3Key"] as const) {
+    if (!isNonEmptyString(b[field])) {
+      return NextResponse.json({ error: `Field '${field}' is required` }, { status: 400 });
+    }
+    if ((b[field] as string).length > MAX_STRING_LENGTH) {
+      return NextResponse.json(
+        { error: `Field '${field}' exceeds maximum length of ${MAX_STRING_LENGTH}` },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (!isNonEmptyString(b["step"]) || !isRecordingStep(b["step"] as string)) {
+    return NextResponse.json({ error: "Field 'step' must be a valid RecordingStep" }, { status: 400 });
+  }
+
+  const step = b["step"] as RecordingStep;
+  const sessionId = b["sessionId"] as string;
+  const contributorId = b["contributorId"] as string;
+  const s3Key = b["s3Key"] as string;
+  const clipId = b["clipId"] as string;
+  const session = b["session"] as { name?: string; email?: string } | undefined;
 
   const supabase = getSupabaseClient();
 
   const { error: sessionError } = await supabase
     .from("collection_sessions")
     .upsert(
-      {
-        id: payload.sessionId,
-        contributor_id: payload.contributorId,
-        name: payload.session?.name ?? null,
-        email: payload.session?.email ?? null,
-      },
-      { onConflict: "id" }
+      { id: sessionId, contributor_id: contributorId },
+      { onConflict: "id", ignoreDuplicates: true },
     );
 
   if (sessionError) {
-    return NextResponse.json(
-      { error: "Failed to persist session" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to persist session" }, { status: 500 });
   }
 
-  // ignoreDuplicates: true prevents overwriting existing rows on retry, but
-  // PostgREST returns 0 rows with PGRST116 when the row is skipped. Removing
-  // .select("id").single() avoids treating a skipped duplicate as an error.
-  const { error: recordingError } = await supabase
-    .from("recordings")
-    .upsert(
-      {
-        clip_id: payload.clipId,
-        session_id: payload.sessionId,
-        contributor_id: payload.contributorId,
-        step: payload.step,
-        label: payload.label ?? null,
-        s3_key: payload.s3Key,
-        mime_type: payload.mimeType,
-        duration_ms: payload.durationMs ?? null,
-        file_size_bytes: payload.fileSizeBytes ?? null,
-        peak_dbfs: payload.peakDbfs ?? null,
-        rms_dbfs: payload.rmsDbfs ?? null,
-        clipping: payload.clipping ?? null,
-        silence_ratio: payload.silenceRatio ?? null,
-        snr_estimate: payload.snrEstimate ?? null,
-        low_quality: payload.lowQuality ?? false,
-        recorded_at: recordedAt,
-      },
-      { onConflict: "clip_id", ignoreDuplicates: true }
-    );
+  const updateData: Record<string, string | number> = { [STEP_TO_S3_COLUMN[step]]: s3Key };
+  const durationMs = typeof b["durationMs"] === "number" && isFinite(b["durationMs"] as number)
+    ? (b["durationMs"] as number)
+    : undefined;
+  if (durationMs !== undefined) updateData[STEP_TO_DURATION_COLUMN[step]] = Math.round(durationMs / 1000);
+  if (session?.name) updateData.name = session.name;
+  if (session?.email) updateData.email = session.email;
 
-  if (recordingError) {
-    return NextResponse.json(
-      { error: "Failed to persist recording" },
-      { status: 500 }
-    );
+  const { error: updateError } = await supabase
+    .from("collection_sessions")
+    .update(updateData)
+    .eq("id", sessionId);
+
+  if (updateError) {
+    return NextResponse.json({ error: "Failed to persist recording" }, { status: 500 });
   }
 
-  // Call confirm logic directly — no HTTP round-trip, no Amplify Lambda URL issue.
-  if (!isRecitationStep(payload.step) && payload.label) {
-    void runConfirmForClip(payload.clipId, payload.label);
-  }
-
-  return NextResponse.json({ clipId: payload.clipId }, { status: 201 });
+  return NextResponse.json({ clipId }, { status: 201 });
 }

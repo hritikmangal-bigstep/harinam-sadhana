@@ -1,14 +1,12 @@
 import { cn } from "@/lib/utils";
 
 const STEP_LABELS: Record<number, string> = {
-  1: "Keywords",
-  2: "Panch-tattva",
-  3: "Maha-mantra",
-  4: "Full round",
+  1: "Panch-tattva",
+  2: "Maha-mantra",
 };
 
 interface StepIndicatorProps {
-  currentStep: 1 | 2 | 3 | 4;
+  currentStep: 1 | 2;
   completedSteps: Set<number>;
 }
 
@@ -16,7 +14,7 @@ export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProp
   return (
     <nav aria-label="Progress" className="w-full">
       <ol className="flex w-full items-center">
-        {([1, 2, 3, 4] as const).map((step, index) => {
+        {([1, 2] as const).map((step, index) => {
           const isCompleted = completedSteps.has(step);
           const isActive = step === currentStep;
           const isFuture = step > currentStep && !isCompleted;
@@ -29,7 +27,7 @@ export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProp
                   aria-hidden="true"
                   className={cn(
                     "h-0.5 flex-1 rounded-full transition-all",
-                    completedSteps.has(step - 1 as 1|2|3|4) ? "bg-primary" : "bg-border",
+                    completedSteps.has(step - 1 as 1|2) ? "bg-primary" : "bg-border",
                   )}
                 />
               )}
@@ -63,7 +61,7 @@ export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProp
               </div>
 
               {/* Right connector — all except last step */}
-              {index < 3 && (
+              {index < 1 && (
                 <div
                   aria-hidden="true"
                   className={cn(

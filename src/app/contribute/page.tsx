@@ -8,7 +8,7 @@ export default function ContributePage() {
           Contribute Your Voice
         </h1>
         <p className="mt-2 font-body text-body text-muted">
-          Help train our AI by recording keywords and mantras. Each step takes
+          Help train our AI by recording sacred mantras. Each step takes
           under a minute.
         </p>
       </div>

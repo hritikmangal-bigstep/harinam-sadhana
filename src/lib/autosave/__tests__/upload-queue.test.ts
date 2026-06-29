@@ -44,8 +44,7 @@ function makeClip(overrides: Partial<ClipRecord> = {}): ClipRecord {
     clipId: `clip-${_seq}-${Math.random().toString(36).slice(2)}`,
     sessionId: "session-001",
     contributorId: "contrib-001",
-    step: "isolated_keyword",
-    label: "hare",
+    step: "panch_tattva_recitation",
     blob: new Blob(["audio"], { type: "audio/webm" }),
     mimeType: "audio/webm",
     durationMs: 1000,
@@ -231,9 +230,9 @@ describe("idempotency", () => {
 // ─────────────────────────────────────────────────────────────────────────
 describe("drainStep", () => {
   it("resolves only after all step-1 clips are persisted", async () => {
-    const clip1a = makeClip({ step: "isolated_keyword" });
-    const clip1b = makeClip({ step: "isolated_keyword" });
-    const clip2 = makeClip({ step: "panch_tattva_recitation" });
+    const clip1a = makeClip({ step: "panch_tattva_recitation" });
+    const clip1b = makeClip({ step: "panch_tattva_recitation" });
+    const clip2 = makeClip({ step: "mahamantra_round" });
 
     const persistedSet = new Set<string>();
 

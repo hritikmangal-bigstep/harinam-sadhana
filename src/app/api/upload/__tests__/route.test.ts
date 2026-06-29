@@ -60,25 +60,7 @@ describe("POST /api/upload — legacy path", () => {
 // --- KWS path ---
 
 describe("POST /api/upload — KWS path", () => {
-  it("returns KWS presign response for isolated_keyword with label", async () => {
-    const res = await post({
-      step: "isolated_keyword",
-      contentType: "audio/webm",
-      contributorId: "contrib-123",
-      clipId: "clip-uuid-abc",
-      label: "hare",
-    });
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.audioUrl).toBeDefined();
-    expect(json.audioKey).toBeDefined();
-    expect(json.audioStorageUrl).toBeDefined();
-    // Must not include legacy fields
-    expect(json.metadataUrl).toBeUndefined();
-    expect(json.offeredAt).toBeUndefined();
-  });
-
-  it("returns 200 for panch_tattva_recitation without label", async () => {
+  it("returns KWS presign response for panch_tattva_recitation", async () => {
     const res = await post({
       step: "panch_tattva_recitation",
       contentType: "audio/webm",
@@ -90,16 +72,9 @@ describe("POST /api/upload — KWS path", () => {
     expect(json.audioUrl).toBeDefined();
     expect(json.audioKey).toBeDefined();
     expect(json.audioStorageUrl).toBeDefined();
-  });
-
-  it("returns 400 for isolated_keyword missing label", async () => {
-    const res = await post({
-      step: "isolated_keyword",
-      contentType: "audio/webm",
-      contributorId: "contrib-123",
-      clipId: "clip-uuid-ghi",
-    });
-    expect(res.status).toBe(400);
+    // Must not include legacy fields
+    expect(json.metadataUrl).toBeUndefined();
+    expect(json.offeredAt).toBeUndefined();
   });
 
   it("returns 400 for an unknown step value", async () => {

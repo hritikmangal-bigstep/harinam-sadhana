@@ -7,7 +7,7 @@ import { generateUUID } from "@/lib/uuid";
 import type { ClipMeta } from "./ContributionFlow";
 
 export interface RecitationStepProps {
-  step: 2 | 3 | 4;
+  step: 1 | 2;
   onClipReady: (clipId: string, blob: Blob, mimeType: string, meta: ClipMeta) => void;
   onRecordingChange?: (isRecording: boolean) => void;
 }
@@ -46,18 +46,14 @@ const MAHA_MANTRA_BLOCK: MantraBlock = {
   ],
 };
 
-const STEP_CONTENT: Record<2 | 3 | 4, StepContent> = {
-  2: {
+const STEP_CONTENT: Record<1 | 2, StepContent> = {
+  1: {
     heading: "Panch-tattva invocation",
     blocks: [PANCH_TATTVA_BLOCK],
   },
-  3: {
+  2: {
     heading: "Hare Krishna Maha-mantra",
     blocks: [MAHA_MANTRA_BLOCK],
-  },
-  4: {
-    heading: "Full round (Panch-tattva + Maha-mantra)",
-    blocks: [PANCH_TATTVA_BLOCK, MAHA_MANTRA_BLOCK],
   },
 };
 

@@ -42,7 +42,7 @@ async function handleKwsRequest(
 
   if (typeof step !== "string" || !isRecordingStep(step)) {
     return NextResponse.json(
-      { error: "Invalid step. Must be one of: isolated_keyword, panch_tattva_recitation, mahamantra_round, panch_tattva_mahamantra_round." },
+      { error: "Invalid step. Must be one of: panch_tattva_recitation, mahamantra_round." },
       { status: 400 },
     );
   }
@@ -68,27 +68,12 @@ async function handleKwsRequest(
     );
   }
 
-  if (step === "isolated_keyword") {
-    if (typeof label !== "string" || label.trim().length === 0) {
-      return NextResponse.json(
-        { error: "label is required for isolated_keyword step." },
-        { status: 400 },
-      );
-    }
-  }
-
-  const resolvedLabel =
-    step === "isolated_keyword" && typeof label === "string"
-      ? label.trim()
-      : undefined;
-
   try {
     const result = await createKwsPresignedUploadUrl(
       step,
       contributorId.trim(),
       clipId.trim(),
       contentType,
-      resolvedLabel,
     );
     const response: KwsPresignResponse = result;
     return NextResponse.json(response, { status: 200 });

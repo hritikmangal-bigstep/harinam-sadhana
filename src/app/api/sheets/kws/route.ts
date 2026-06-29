@@ -18,11 +18,8 @@ interface KwsSheetPayload {
 }
 
 interface SessionPart {
-  keyword_s3_keys: string[] | null;
-  keyword_labels: string[] | null;
+  part1_s3_key: string | null;
   part2_s3_key: string | null;
-  part3_s3_key: string | null;
-  part4_s3_key: string | null;
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -61,33 +58,23 @@ async function runAsync(payload: KwsSheetPayload): Promise<void> {
       );
     }
 
-    // Fetch all S3 keys for this session
+    // Fetch S3 keys for this session
     const { data } = await supabase
-      .from("kws_session_parts")
-      .select("keyword_s3_keys,keyword_labels,part2_s3_key,part3_s3_key,part4_s3_key")
-      .eq("session_id", payload.sessionId)
+      .from("collection_sessions")
+      .select("part1_s3_key,part2_s3_key")
+      .eq("id", payload.sessionId)
       .single();
 
     const rec = (data ?? {}) as SessionPart;
 
     // Generate 7-day presigned GET URLs; any individual failure yields "" rather
     // than aborting the entire Sheets row (Promise.allSettled instead of Promise.all).
-    const keywordLinks = (await Promise.allSettled(
-      (rec.keyword_s3_keys ?? []).map((key, i) =>
-        createPresignedGetUrl(key, LINK_EXPIRY_SECONDS).then(
-          (url) => `${rec.keyword_labels?.[i] ?? "kw"}: ${url}`,
-        ),
-      ),
-    )).map((r) => r.status === "fulfilled" ? r.value : "");
-
-    const [part2r, part3r, part4r] = await Promise.allSettled([
+    const [part1r, part2r] = await Promise.allSettled([
+      rec.part1_s3_key ? createPresignedGetUrl(rec.part1_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
       rec.part2_s3_key ? createPresignedGetUrl(rec.part2_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
-      rec.part3_s3_key ? createPresignedGetUrl(rec.part3_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
-      rec.part4_s3_key ? createPresignedGetUrl(rec.part4_s3_key, LINK_EXPIRY_SECONDS) : Promise.resolve(""),
     ]);
+    const part1 = part1r.status === "fulfilled" ? part1r.value : "";
     const part2 = part2r.status === "fulfilled" ? part2r.value : "";
-    const part3 = part3r.status === "fulfilled" ? part3r.value : "";
-    const part4 = part4r.status === "fulfilled" ? part4r.value : "";
 
     // Re-serialize timestamp server-side to prevent formula injection.
     const ts = new Date(payload.timestamp);
@@ -98,10 +85,8 @@ async function runAsync(payload: KwsSheetPayload): Promise<void> {
       payload.name || "Anonymous",
       payload.email,
       payload.sessionId.slice(0, 8),
-      keywordLinks.join("\n"),
+      part1,
       part2,
-      part3,
-      part4,
     );
   } catch (err) {
     if (process.env.NODE_ENV !== "test") {
@@ -116,7 +101,7 @@ function sanitizeCell(value: string): string {
 
 async function appendSheetRow(
   timestamp: string, name: string, email: string, sessionId: string,
-  part1: string, part2: string, part3: string, part4: string,
+  part1: string, part2: string,
 ): Promise<void> {
   const svcEmail =
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || buildEnv.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -134,12 +119,28 @@ async function appendSheetRow(
   });
   const sheets = google.sheets({ version: "v4", auth });
 
+  const SHEET_NAME = "Mantras";
+
+  // Ensure the sheet tab exists; create it if missing.
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+  const exists = spreadsheet.data.sheets?.some(
+    (s) => s.properties?.title === SHEET_NAME,
+  );
+  if (!exists) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        requests: [{ addSheet: { properties: { title: SHEET_NAME } } }],
+      },
+    });
+  }
+
   // Race against a fixed timeout so a hung Google API call doesn't hold the
   // orphaned async task open indefinitely.
   await Promise.race([
     sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: "KWS!A:H",
+      range: `${SHEET_NAME}!A:F`,
       valueInputOption: "RAW",
       requestBody: {
         values: [[
@@ -149,8 +150,6 @@ async function appendSheetRow(
           sanitizeCell(sessionId),
           part1,
           part2,
-          part3,
-          part4,
         ]],
       },
     }),

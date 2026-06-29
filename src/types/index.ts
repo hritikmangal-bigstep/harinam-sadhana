@@ -51,8 +51,6 @@ export interface KwsPresignRequest {
   contributorId: string;
   /** Client-generated UUID identifying this specific clip. */
   clipId: string;
-  /** Required for isolated_keyword; absent for recitation steps. */
-  label?: string;
 }
 
 /** Response from POST /api/upload for a KWS clip. */
@@ -65,31 +63,14 @@ export interface KwsPresignResponse {
   audioStorageUrl: string;
 }
 
-/** Body for POST /api/recordings — one clip's metadata. */
+/** Body for POST /api/recordings — persists S3 key and duration to collection_sessions. */
 export interface RecordingPayload {
-  // Identification
   clipId: string;
   sessionId: string;
   contributorId: string;
-
-  // Recording
   step: RecordingStep;
-  label?: string;
   s3Key: string;
-  mimeType: string;
-
-  // Technical metadata (optional — computed by client)
   durationMs?: number;
-  fileSizeBytes?: number;
-
-  // Quality metrics (optional — added by U8)
-  peakDbfs?: number;
-  rmsDbfs?: number;
-  clipping?: boolean;
-  silenceRatio?: number;
-  snrEstimate?: number;
-  lowQuality?: boolean;
-
   session?: {
     name?: string;
     email?: string;

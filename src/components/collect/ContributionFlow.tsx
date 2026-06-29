@@ -9,7 +9,6 @@ import type { ClipRecord } from "@/lib/autosave/store";
 import type { RecordingStep } from "@/lib/steps";
 import { SuccessOverlay } from "@/components/state/SuccessOverlay";
 import { StepIndicator } from "./StepIndicator";
-import { PromptedRecorder } from "./PromptedRecorder";
 import { RecitationStep } from "./RecitationStep";
 
 export interface ClipMeta {
@@ -31,27 +30,19 @@ interface StepMeta {
   description: string;
 }
 
-const STEPS: Record<1 | 2 | 3 | 4, StepMeta> = {
+const STEPS: Record<1 | 2, StepMeta> = {
   1: {
-    title: "Keywords",
-    description: "Speak individual names and keywords used in Harinam chanting.",
-  },
-  2: {
     title: "Panch-tattva",
     description: "Recite the Panch-tattva mantra at a clear, measured pace.",
   },
-  3: {
+  2: {
     title: "Maha-mantra",
     description: "Chant one round of the Hare Krishna Maha-mantra.",
-  },
-  4: {
-    title: "Full round",
-    description: "Record a complete, uninterrupted round on your japa beads.",
   },
 };
 
 export function ContributionFlow() {
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isComplete, setIsComplete] = useState(false);
   const [contributorId] = useState(() => getContributorId());
@@ -61,9 +52,6 @@ export function ContributionFlow() {
   const [identityMode, setIdentityMode] = useState<"anonymous" | "named">("named");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-
-  // Step 1 keyword take counts.
-  const [takeCounts, setTakeCounts] = useState<Record<string, number>>({});
 
   const [sessionId, setSessionId] = useState<string>(() => {
     if (typeof localStorage === "undefined") return generateUUID();
@@ -107,21 +95,15 @@ export function ContributionFlow() {
     })();
   };
 
-  // Step 1 keyword take handler — generates a clipId and calls handleClipReady.
-  const handleTakeComplete = (label: string, audio: Blob, mimeType: string) => {
-    const clipId = generateUUID();
-    handleClipReady(clipId, audio, mimeType, { step: "isolated_keyword", label });
-  };
-
   const advance = (completed: boolean) => {
     if (completed) {
       setCompletedSteps((prev) => new Set(prev).add(currentStep));
     }
-    if (currentStep === 4) {
+    if (currentStep === 2) {
       setIsComplete(true);
       return;
     }
-    setCurrentStep((prev) => (prev + 1) as 1 | 2 | 3 | 4);
+    setCurrentStep((prev) => (prev + 1) as 1 | 2);
   };
 
   const handleSaveAndContinue = async () => {
@@ -147,8 +129,8 @@ export function ContributionFlow() {
       ]);
       if (!drained) cancelDrain(currentStep);
 
-      // Step 4 completion: fire-and-forget summary row to Google Sheets.
-      if (currentStep === 4) {
+      // Step 2 completion: fire-and-forget summary row to Google Sheets.
+      if (currentStep === 2) {
         void fetch("/api/sheets/kws", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -179,7 +161,6 @@ export function ContributionFlow() {
           setIsComplete(false);
           setCurrentStep(1);
           setCompletedSteps(new Set());
-          setTakeCounts({});
           setIdentityMode("anonymous");
           setName("");
           setEmail("");
@@ -250,28 +231,19 @@ export function ContributionFlow() {
       <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6 shadow-md">
         <div className="flex flex-col gap-1">
           <p className="font-body text-caption uppercase tracking-wider text-muted">
-            Step {currentStep} of 4
+            Step {currentStep} of 2
           </p>
           <h2 className="font-heading text-h2 text-heading">{step.title}</h2>
           <p className="font-body text-body text-muted">{step.description}</p>
         </div>
 
         {/* Step content */}
-        {currentStep === 1 ? (
-          <PromptedRecorder
-            takeCounts={takeCounts}
-            onTakeComplete={handleTakeComplete}
-            onTakeCountsChange={setTakeCounts}
-            onRecordingChange={setIsRecording}
-          />
-        ) : (
-          <RecitationStep
-            key={currentStep}
-            step={currentStep as 2 | 3 | 4}
-            onClipReady={handleClipReady}
-            onRecordingChange={setIsRecording}
-          />
-        )}
+        <RecitationStep
+          key={currentStep}
+          step={currentStep}
+          onClipReady={handleClipReady}
+          onRecordingChange={setIsRecording}
+        />
 
         <div className="flex flex-col items-center gap-3">
           <button
@@ -282,7 +254,7 @@ export function ContributionFlow() {
           >
             {isSaving
               ? "Saving…"
-              : currentStep === 4
+              : currentStep === 2
               ? "Save & Finish"
               : "Save & Continue"}
           </button>

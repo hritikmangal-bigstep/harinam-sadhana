@@ -21,8 +21,7 @@ function makeClip(overrides: Partial<ClipRecord> = {}): ClipRecord {
     clipId: "clip-001",
     sessionId: "session-001",
     contributorId: "contrib-001",
-    step: "isolated_keyword",
-    label: "hare",
+    step: "panch_tattva_recitation",
     blob: new Blob(["audio-data"], { type: "audio/webm" }),
     mimeType: "audio/webm",
     durationMs: 1200,
@@ -50,8 +49,7 @@ describe("store — saveClip / getClip", () => {
     const retrieved = await get("clip-save-1");
     expect(retrieved).toBeDefined();
     expect(retrieved?.clipId).toBe("clip-save-1");
-    expect(retrieved?.step).toBe("isolated_keyword");
-    expect(retrieved?.label).toBe("hare");
+    expect(retrieved?.step).toBe("panch_tattva_recitation");
     expect(retrieved?.status).toBe("queued");
   });
 
@@ -82,8 +80,7 @@ describe("store — updateClipStatus", () => {
     await update("clip-status", "uploading");
     const result = await get("clip-status");
     expect(result?.status).toBe("uploading");
-    expect(result?.label).toBe("hare");
-    expect(result?.step).toBe("isolated_keyword");
+    expect(result?.step).toBe("panch_tattva_recitation");
     expect(result?.blob).toBeDefined();
   });
 

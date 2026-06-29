@@ -63,7 +63,7 @@ function backoffMs(attempt: number): number {
 
 /** Notify any drainStep waiters once a clip's step has no remaining work. */
 function notifyDrainIfDone(stepNumber: number): void {
-  const stepEnum = STEP_TO_RECORDING_STEP[stepNumber as 1 | 2 | 3 | 4];
+  const stepEnum = STEP_TO_RECORDING_STEP[stepNumber as 1 | 2];
   if (!stepEnum) return;
   const hasPending = queue.some((c) => c.step === stepEnum);
   const inFlightForStep = [...inFlight].filter((id) => inFlightStepMap.get(id) === stepEnum);
@@ -94,7 +94,6 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
       contentType: clip.mimeType,
       contributorId: clip.contributorId,
       clipId: clip.clipId,
-      label: clip.label,
     }),
     signal: AbortSignal.timeout(15_000),
   });
@@ -117,7 +116,7 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
     throw new Error(`S3 PUT failed (${putRes.status})`);
   }
 
-  // Step 3 — POST metadata to /api/recordings (includes quality metrics + session identity)
+  // Step 3 — POST metadata to /api/recordings (persists S3 key to collection_sessions)
   const recordingsRes = await fetch(`${API_BASE}/api/recordings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -126,17 +125,8 @@ async function uploadClip(clip: ClipRecord): Promise<void> {
       sessionId: clip.sessionId,
       contributorId: clip.contributorId,
       step: clip.step,
-      label: clip.label,
       s3Key: audioKey,
-      mimeType: clip.mimeType,
       durationMs: clip.durationMs,
-      fileSizeBytes: clip.fileSizeBytes,
-      peakDbfs: clip.peakDbfs,
-      rmsDbfs: clip.rmsDbfs,
-      clipping: clip.clipping,
-      silenceRatio: clip.silenceRatio,
-      snrEstimate: clip.snrEstimate,
-      lowQuality: clip.lowQuality,
       session: (clip.name || clip.email)
         ? { name: clip.name, email: clip.email }
         : undefined,
@@ -259,7 +249,7 @@ export async function saveAndEnqueue(clip: ClipRecord): Promise<void> {
  * Cancel any pending drainStep waiters for a step.
  * Call after a drain timeout so abandoned resolve callbacks don't accumulate.
  */
-export function cancelDrain(stepNumber: 1 | 2 | 3 | 4): void {
+export function cancelDrain(stepNumber: 1 | 2): void {
   drainWaiters.delete(stepNumber);
 }
 
@@ -267,7 +257,7 @@ export function cancelDrain(stepNumber: 1 | 2 | 3 | 4): void {
  * Await all in-flight and queued uploads for clips belonging to the given step number.
  * Called by "Save & Continue" before advancing to the next step.
  */
-export function drainStep(stepNumber: 1 | 2 | 3 | 4): Promise<void> {
+export function drainStep(stepNumber: 1 | 2): Promise<void> {
   const stepEnum = STEP_TO_RECORDING_STEP[stepNumber];
   const hasWork =
     queue.some((c) => c.step === stepEnum) ||

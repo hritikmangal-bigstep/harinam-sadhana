@@ -47,38 +47,33 @@ function simulateRecording() {
 describe("RecitationStep", () => {
   beforeEach(() => mockOnChange.mockClear());
 
-  it("renders the heading for step 2 (Panch-tattva)", () => {
-    render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
+  it("renders the heading for step 1 (Panch-tattva)", () => {
+    render(<RecitationStep step={1} onClipReady={makeOnClipReady()} />);
     expect(screen.getByText(/panch-tattva invocation/i)).toBeInTheDocument();
   });
 
-  it("renders Devanagari mantra lines for step 2", () => {
-    render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
+  it("renders Devanagari mantra lines for step 1 (Panch-tattva)", () => {
+    render(<RecitationStep step={1} onClipReady={makeOnClipReady()} />);
     expect(
       screen.getByText(/जय श्री कृष्ण चैतन्य प्रभु नित्यानन्द/),
     ).toBeInTheDocument();
   });
 
-  it("renders the heading for step 3 (Maha-mantra)", () => {
-    render(<RecitationStep step={3} onClipReady={makeOnClipReady()} />);
+  it("renders the heading for step 2 (Maha-mantra)", () => {
+    render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
     expect(screen.getAllByText(/hare krishna maha-mantra/i).length).toBeGreaterThan(0);
   });
 
-  it("renders Devanagari mantra lines for step 3", () => {
-    render(<RecitationStep step={3} onClipReady={makeOnClipReady()} />);
+  it("renders Devanagari mantra lines for step 2 (Maha-mantra)", () => {
+    render(<RecitationStep step={2} onClipReady={makeOnClipReady()} />);
     expect(
       screen.getByText(/हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे/),
     ).toBeInTheDocument();
   });
 
-  it("renders the heading for step 4 (Full round)", () => {
-    render(<RecitationStep step={4} onClipReady={makeOnClipReady()} />);
-    expect(screen.getByText(/full round/i)).toBeInTheDocument();
-  });
-
-  it("calls onClipReady with panch_tattva_recitation immediately after recording (step 2)", () => {
+  it("calls onClipReady with panch_tattva_recitation immediately after recording (step 1)", () => {
     const onClipReady = makeOnClipReady();
-    render(<RecitationStep step={2} onClipReady={onClipReady} />);
+    render(<RecitationStep step={1} onClipReady={onClipReady} />);
 
     simulateRecording();
 
@@ -97,20 +92,12 @@ describe("RecitationStep", () => {
     expect(meta.durationMs).toBe(5000);
   });
 
-  it("calls onClipReady with mahamantra_round immediately after recording (step 3)", () => {
+  it("calls onClipReady with mahamantra_round immediately after recording (step 2)", () => {
     const onClipReady = makeOnClipReady();
-    render(<RecitationStep step={3} onClipReady={onClipReady} />);
+    render(<RecitationStep step={2} onClipReady={onClipReady} />);
     simulateRecording();
     const [, , , meta] = onClipReady.mock.calls[0] as [string, Blob, string, ClipMeta];
     expect(meta.step).toBe("mahamantra_round");
-  });
-
-  it("calls onClipReady with panch_tattva_mahamantra_round immediately after recording (step 4)", () => {
-    const onClipReady = makeOnClipReady();
-    render(<RecitationStep step={4} onClipReady={onClipReady} />);
-    simulateRecording();
-    const [, , , meta] = onClipReady.mock.calls[0] as [string, Blob, string, ClipMeta];
-    expect(meta.step).toBe("panch_tattva_mahamantra_round");
   });
 
   it("shows Re-record button after a recording completes", () => {
